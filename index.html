@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Enchanted Journal</title>
+<meta name="description" content="A vintage animated web journal — write on every page, turn the leaves, and watch petals and stardust drift across the spread.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Tangerine:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<canvas id="fx" aria-hidden="true"></canvas>
+
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="brand">The Enchanted Journal</div>
+  <div class="tools">
+    <span id="saveState" class="save-state" role="status" aria-live="polite">Saved</span>
+    <button id="fxToggle" class="tool-btn" type="button" title="Turn the magic up or down">✦ Magic: On</button>
+    <button id="soundToggle" class="tool-btn" type="button" title="Page-turn sound">♪ Sound: Off</button>
+  </div>
+</header>
+
+<main class="stage" id="stage">
+  <div class="book" id="book">
+    <div class="static-page static-left" aria-hidden="true"></div>
+    <div class="static-page static-right" aria-hidden="true"></div>
+    <div class="gutter" aria-hidden="true"></div>
+    <!-- leaves injected by journal.js -->
+  </div>
+</main>
+
+<nav class="tabs" id="tabs" aria-label="Journal pages"></nav>
+
+<div class="controls">
+  <button id="prevBtn" class="nav-btn" type="button" aria-label="Previous page">‹</button>
+  <span id="pageLabel" class="page-label">Cover</span>
+  <button id="nextBtn" class="nav-btn" type="button" aria-label="Next page">›</button>
+</div>
+
+<p class="hint" id="hint">Click the page to turn it — click anywhere on the writing to begin your entry</p>
+
+<script src="content.js"></script>
+<script src="journal.js"></script>
+</body>
+</html>
