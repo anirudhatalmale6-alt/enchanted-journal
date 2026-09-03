@@ -230,7 +230,7 @@
      3. Fit the book to the screen
      ---------------------------------------------------------------- */
 
-  const RATIO = 1.376;
+  const RATIO = 1.337;   // the rectified cover crop, so nothing is stretched
   let single = false;
 
   function layout() {
