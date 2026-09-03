@@ -129,8 +129,11 @@ body{
 }
 .static-left{  left:0;              box-shadow:inset -14px 0 26px -12px rgba(90,60,30,.55); border-radius:6px 3px 3px 6px; }
 .static-right{ left:var(--pw);      box-shadow:inset  14px 0 26px -12px rgba(90,60,30,.55); border-radius:3px 6px 6px 3px; }
-/* a closed book has no paper on the empty side — JS toggles these */
-.static-page.hidden{ opacity:0; }
+/* a closed book has no paper on the empty side — JS toggles these.
+   The fade lets the block of paper appear behind the sweeping leaf
+   instead of popping into the gap the leaf has not covered yet. */
+.static-page{ transition:opacity .45s ease; }
+.static-page.hidden{ opacity:0; transition:opacity .12s ease; }
 
 /* stacked page edges */
 .static-left::after, .static-right::after{
@@ -213,8 +216,8 @@ body{
 .face.back .turn-shade{ background:linear-gradient(to left, rgba(50,30,10,.55), rgba(50,30,10,0) 60%); }
 .leaf.turning .face.front .turn-shade{ animation:shadeOut var(--flip) cubic-bezier(.42,.02,.24,1); }
 .leaf.turning .face.back  .turn-shade{ animation:shadeIn  var(--flip) cubic-bezier(.42,.02,.24,1); }
-@keyframes shadeOut{ 0%{opacity:0} 45%{opacity:.85} 100%{opacity:0} }
-@keyframes shadeIn { 0%{opacity:.9} 55%{opacity:.6} 100%{opacity:0} }
+@keyframes shadeOut{ 0%{opacity:0} 45%{opacity:.62} 100%{opacity:0} }
+@keyframes shadeIn { 0%{opacity:.72} 55%{opacity:.45} 100%{opacity:0} }
 
 /* ---------- page content ---------- */
 

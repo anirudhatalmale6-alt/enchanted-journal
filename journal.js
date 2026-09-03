@@ -186,7 +186,7 @@
     document.body.classList.toggle('single', single);
 
     const availW = w - (single ? 26 : 96);
-    const availH = h - (single ? 178 : 174);   // room for the topbar, hint and controls
+    const availH = h - (single ? 178 : 196);   // room for the topbar, hint and controls
 
     let pw = single ? availW : availW / 2;
     let ph = pw * RATIO;
@@ -237,7 +237,7 @@
   function updateStatics(sp, animate) {
     statTimers.forEach(clearTimeout);
     statTimers = [];
-    const delay = animate ? FLIP_MS * 0.5 : 0;
+    const delay = animate ? FLIP_MS * 0.6 : 0;
     const set = (el, wanted) => {
       if (!wanted) { el.classList.add('hidden'); return; }
       if (!el.classList.contains('hidden')) return;
