@@ -2,7 +2,7 @@
    Bump CACHE when anything in ASSETS changes, or installed copies keep the
    old files for ever. */
 
-const CACHE = 'journey-to-me-v3';
+const CACHE = 'journey-to-me-v4';
 
 const ASSETS = [
   './',
@@ -10,10 +10,12 @@ const ASSETS = [
   './styles.css',
   './content.js',
   './journal.js',
+  './flowers.js',
   './manifest.webmanifest',
   './assets/paper.webp',
   './assets/cover.webp',
   './assets/frame.webp',
+  './assets/table.webp',
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-180.png',
@@ -21,6 +23,9 @@ const ASSETS = [
 ];
 for (let n = 1; n <= 21; n++) {
   ASSETS.push('./assets/flowers/day' + String(n).padStart(2, '0') + '.webp');
+}
+for (let n = 1; n <= 6; n++) {
+  ASSETS.push('./assets/petals/p' + n + '.webp');
 }
 
 self.addEventListener('install', e => {

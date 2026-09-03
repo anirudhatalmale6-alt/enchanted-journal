@@ -59,8 +59,17 @@
 
   function promptHTML(d) {
     const day = d.day;
-    return '<div class="page-inner prompt">' +
-      '<img class="day-flower" src="assets/flowers/day' + String(day.n).padStart(2, '0') + '.webp"' +
+    // FLOWER_BOX records where the flower sat on the client's printed page, as
+    // fractions of that page, so the web version reproduces their layout
+    // rather than my guess at a margin — and nothing gets cropped.
+    const b = (typeof FLOWER_BOX !== 'undefined' && FLOWER_BOX[day.n]) ||
+              { l: 0.02, t: 0.02, w: 0.22, h: 0.96 };
+    const box = 'left:' + (b.l * 100).toFixed(3) + '%;top:' + (b.t * 100).toFixed(3) +
+                '%;width:' + (b.w * 100).toFixed(3) + '%;height:' + (b.h * 100).toFixed(3) + '%';
+    const textLeft = ((b.l + b.w) * 100 + 3).toFixed(2);
+    return '<div class="page-inner prompt" style="--text-left:' + textLeft + '%">' +
+      '<img class="day-flower" style="' + box + '"' +
+        ' src="assets/flowers/day' + String(day.n).padStart(2, '0') + '.webp"' +
         ' alt="" loading="lazy" decoding="async">' +
       '<div class="prompt-body">' +
         '<div class="day-no">Day ' + day.n + '</div>' +
@@ -221,7 +230,7 @@
      3. Fit the book to the screen
      ---------------------------------------------------------------- */
 
-  const RATIO = 1.42;
+  const RATIO = 1.376;
   let single = false;
 
   function layout() {
@@ -230,8 +239,13 @@
     single = w < 900;
     document.body.classList.toggle('single', single);
 
+    // lift the book off the bottom of the screen so the table it stands on is
+    // actually visible behind it
+    const lift = Math.round(Math.min(96, h * (single ? 0.06 : 0.11)));
+    document.documentElement.style.setProperty('--lift', lift + 'px');
+
     const availW = w - (single ? 24 : 96);
-    const availH = h - (single ? 176 : 196);
+    const availH = h - (single ? 176 : 196) - lift;
 
     let pw = single ? availW : availW / 2;
     let ph = pw * RATIO;
@@ -251,6 +265,7 @@
      ---------------------------------------------------------------- */
 
   const state = { page: 0 };
+  const bookShadow = document.getElementById('bookShadow');
   const spreadOf = p => (p % 2 === 0 ? p / 2 : (p + 1) / 2);
 
   function pan(animate) {
@@ -268,6 +283,17 @@
     if (!animate) { void book.offsetWidth; book.style.transition = ''; }
     book.classList.toggle('at-cover', sp === 0);
     book.classList.toggle('at-end', sp === LEAVES);
+
+    // the shadow on the table slides with the book
+    document.documentElement.style.setProperty('--pan', x.toFixed(1) + 'px');
+    if (bookShadow) {
+      if (!animate) {
+        bookShadow.style.transition = 'none';
+        void bookShadow.offsetWidth;
+        bookShadow.style.transition = '';
+      }
+      bookShadow.classList.toggle('narrow', single || sp === 0 || sp === LEAVES);
+    }
     updateStatics(sp, animate);
   }
 
@@ -487,8 +513,8 @@
   const petals = [];
   const dust = [];
   const LEVELS = [
-    { name: 'On',   ambientPetals: 10, ambientDust: 40, mult: 1 },
-    { name: 'Soft', ambientPetals: 4,  ambientDust: 16, mult: 0.4 },
+    { name: 'On',   ambientPetals: 11, ambientDust: 52, mult: 1 },
+    { name: 'Soft', ambientPetals: 5,  ambientDust: 20, mult: 0.4 },
     { name: 'Off',  ambientPetals: 0,  ambientDust: 0,  mult: 0 }
   ];
   let levelIdx = REDUCED ? 1 : 0;
@@ -504,15 +530,18 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
-  // drawn from the roses and blossoms in the journal itself
-  const PETAL_TINTS = [
-    ['#ffdfe6', '#d4808f'],
-    ['#fff1d9', '#e0b177'],
-    ['#ffe0ec', '#c9749a'],
-    ['#fff7e6', '#eac77f'],
-    ['#f3e2ff', '#b08ad0'],
-    ['#ffe6dc', '#d98f6a']
-  ];
+  // Real rose-petal sprites, shaded once and then tumbled at runtime. Drawing
+  // them as canvas gradients never looked like more than coloured ovals.
+  const PETAL_SRC = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  const petalImgs = [];
+  let petalsReady = 0;
+  PETAL_SRC.forEach((n, i) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => { petalsReady++; };
+    img.src = 'assets/petals/' + n + '.webp';
+    petalImgs[i] = img;
+  });
 
   function bookRect() {
     const r = book.getBoundingClientRect();
@@ -532,39 +561,43 @@
 
   function makePetal(o) {
     o = o || {};
-    const tint = PETAL_TINTS[(Math.random() * PETAL_TINTS.length) | 0];
+    // sized off the stage so a petal looks the same on a phone as on a laptop
+    const unit = Math.max(34, Math.min(ch * 0.10, 96));
     return {
       x: o.x !== undefined ? o.x : Math.random() * cw,
-      y: o.y !== undefined ? o.y : -40 - Math.random() * 120,
-      vx: o.vx !== undefined ? o.vx : (Math.random() - 0.4) * 0.35,
-      vy: o.vy !== undefined ? o.vy : 0.28 + Math.random() * 0.5,
-      size: 5 + Math.random() * 8,
-      rot: Math.random() * Math.PI * 2,
-      vrot: (Math.random() - 0.5) * 0.035,
+      y: o.y !== undefined ? o.y : -70 - Math.random() * 160,
+      vx: o.vx !== undefined ? o.vx : (Math.random() - 0.4) * 0.4,
+      vy: o.vy !== undefined ? o.vy : 0.32 + Math.random() * 0.55,
+      h: unit * (0.46 + Math.random() * 0.62),
+      img: (Math.random() * PETAL_SRC.length) | 0,
+      flip: Math.random() < 0.5 ? -1 : 1,
+      rot: (Math.random() - 0.5) * 1.6,
+      vrot: (Math.random() - 0.5) * 0.028,
       spin: Math.random() * Math.PI * 2,
-      vspin: 0.012 + Math.random() * 0.03,
-      sway: 0.5 + Math.random() * 1.5,
+      vspin: 0.010 + Math.random() * 0.026,
+      sway: 0.5 + Math.random() * 1.6,
       phase: Math.random() * Math.PI * 2,
       alpha: 0,
-      target: 0.26 + Math.random() * 0.26,
-      tint: tint,
-      drag: 0.985
+      target: 0.72 + Math.random() * 0.28,
+      drag: 0.986
     };
   }
 
   function makeDust(o) {
     o = o || {};
+    const x = o.x !== undefined ? o.x : Math.random() * cw;
+    const y = o.y !== undefined ? o.y : Math.random() * ch;
     return {
-      x: o.x !== undefined ? o.x : Math.random() * cw,
-      y: o.y !== undefined ? o.y : Math.random() * ch,
+      x: x, y: y, px: x, py: y,
       vx: o.vx !== undefined ? o.vx : (Math.random() - 0.5) * 0.25,
       vy: o.vy !== undefined ? o.vy : -0.05 - Math.random() * 0.2,
-      size: 0.6 + Math.random() * 1.5,
+      size: 0.7 + Math.random() * 1.9,
+      flare: Math.random() < 0.28,          // a few get the four-point star
       life: 0,
-      maxLife: 900 + Math.random() * 1600,
+      maxLife: 900 + Math.random() * 1700,
       twinkle: Math.random() * Math.PI * 2,
-      vtwinkle: 0.05 + Math.random() * 0.11,
-      warm: Math.random() < 0.74,
+      vtwinkle: 0.05 + Math.random() * 0.12,
+      warm: Math.random() < 0.82,           // mostly gold, like the reference
       drag: 0.99
     };
   }
@@ -586,8 +619,8 @@
     const r = bookRect();
     burstJobs.push({
       t: 0, dur: FLIP_MS, dir: dir, rect: r,
-      petalsLeft: Math.round(8 * strength),
-      dustLeft: Math.round(64 * strength)
+      petalsLeft: Math.round(9 * strength),
+      dustLeft: Math.round(90 * strength)
     });
     const spineX = r.x + r.w / 2;
     for (let i = 0; i < Math.round(10 * strength); i++) {
@@ -643,27 +676,17 @@
     box && x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h;
 
   function drawPetal(p) {
-    const s = p.size;
-    const squash = Math.abs(Math.cos(p.spin)) * 0.75 + 0.25;
-    const dim = overBook(p.x, p.y) ? 0.6 : 1;
+    const img = petalImgs[p.img];
+    if (!img || !img.complete || !img.naturalWidth) return;
+    // |cos| of the spin fakes the petal turning edge-on as it falls
+    const face = Math.abs(Math.cos(p.spin));
+    const w = p.h * (img.naturalWidth / img.naturalHeight) * (0.18 + 0.82 * face);
+    const dim = overBook(p.x, p.y) ? 0.30 : 1;   // never fight the writing
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
-    ctx.scale(1, squash);
-    const g = ctx.createLinearGradient(0, -s, 0, s);
-    g.addColorStop(0, p.tint[0]);
-    g.addColorStop(1, p.tint[1]);
-    ctx.fillStyle = g;
     ctx.globalAlpha = p.alpha * dim;
-    ctx.beginPath();
-    ctx.moveTo(0, -s);
-    ctx.bezierCurveTo(s * 0.92, -s * 0.55, s * 0.72, s * 0.62, 0, s);
-    ctx.bezierCurveTo(-s * 0.72, s * 0.62, -s * 0.92, -s * 0.55, 0, -s);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,.35)';
-    ctx.lineWidth = 0.6;
-    ctx.globalAlpha = p.alpha * dim * 0.5;
-    ctx.stroke();
+    ctx.drawImage(img, -w / 2 * p.flip, -p.h / 2, w * p.flip, p.h);
     ctx.restore();
   }
 
@@ -671,7 +694,7 @@
     const t = d.life / d.maxLife;
     const fade = t < 0.14 ? t / 0.14 : (1 - t) / 0.86;
     const a = Math.max(0, Math.min(1, fade)) * (0.42 + 0.4 * Math.sin(d.twinkle))
-              * (overBook(d.x, d.y) ? 0.62 : 1);
+              * (overBook(d.x, d.y) ? 0.5 : 1);
     if (a <= 0.01) return;
     const r = d.size * (1.5 + 0.45 * Math.sin(d.twinkle));
     const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 3.0);
@@ -688,10 +711,38 @@
     ctx.beginPath();
     ctx.arc(d.x, d.y, r * 3.0, 0, Math.PI * 2);
     ctx.fill();
+
+    // the fast ones, thrown out by a turning page, leave a light trail
+    const dx = d.x - d.px, dy = d.y - d.py;
+    const sp = Math.hypot(dx, dy);
+    if (sp > 1.2) {
+      const tg = ctx.createLinearGradient(d.px, d.py, d.x, d.y);
+      const c = d.warm ? '255,214,140' : '206,226,255';
+      tg.addColorStop(0, 'rgba(' + c + ',0)');
+      tg.addColorStop(1, 'rgba(' + c + ',' + (a * 0.55).toFixed(3) + ')');
+      ctx.strokeStyle = tg;
+      ctx.lineWidth = Math.min(r * 0.9, 2.4);
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(d.px - dx * 3, d.py - dy * 3);
+      ctx.lineTo(d.x, d.y);
+      ctx.stroke();
+    }
+
+    if (d.flare && a > 0.25) {
+      const L = r * 7.5;
+      const c = d.warm ? '255,226,158' : '214,232,255';
+      ctx.strokeStyle = 'rgba(' + c + ',' + (a * 0.5).toFixed(3) + ')';
+      ctx.lineWidth = Math.max(0.7, r * 0.28);
+      ctx.beginPath();
+      ctx.moveTo(d.x - L, d.y); ctx.lineTo(d.x + L, d.y);
+      ctx.moveTo(d.x, d.y - L); ctx.lineTo(d.x, d.y + L);
+      ctx.stroke();
+    }
   }
 
   let last = 0, running = true;
-  const MAX_PETALS = 52, MAX_DUST = 280;
+  const MAX_PETALS = 46, MAX_DUST = 340;
 
   function frame(now) {
     if (!last) last = now;
@@ -724,6 +775,7 @@
     for (let i = dust.length - 1; i >= 0; i--) {
       const d = dust[i];
       d.life += dt;
+      d.px = d.x; d.py = d.y;
       d.twinkle += d.vtwinkle * f;
       d.vx *= Math.pow(d.drag, f);
       d.vy *= Math.pow(d.drag, f);

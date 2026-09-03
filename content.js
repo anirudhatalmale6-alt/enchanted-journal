@@ -52,7 +52,7 @@ const JOURNAL = {
       title: 'The Day of “What Would You Change”',
       body: [
         'What would your response be if someone asked you this question: “If you could change anything about your life, what would it be?”',
-        'As you journey toward finding yourself, this question give you an opportunity to explore the things you feel could make your life better or make you a happier person.',
+        'As you journey toward finding yourself, this question gives you an opportunity to explore the things you feel could make your life better or make you a happier person.',
         'So, if you could change at least three things about your life, what would they be, and why?'
       ]
     },
@@ -79,7 +79,7 @@ const JOURNAL = {
       n: 5,
       title: 'The Day of Recognition',
       body: [
-        'Recognition is the act of identifying someone or something from previous experience',
+        'Recognition is the act of identifying someone or something from a previous experience.',
         'Can you think of something about yourself that you recognize from your childhood?',
         'Answer these two questions:'
       ],
@@ -100,9 +100,9 @@ const JOURNAL = {
       n: 7,
       title: 'The Day of Listening',
       body: [
-        'When you quiet the noise around you, you create space to hear your thoughts and determine whether they are positive of negative.',
+        'When you quiet the noise around you, you create space to hear your thoughts and determine whether they are positive or negative.',
         'Take a moment to listen to your thoughts.',
-        'Write down some of the those thoughts. After you write them down, identify the negative thoughts and go back in and write a positive response that replaces those negative thoughts.'
+        'Write down some of those thoughts. After you write them down, identify the negative thoughts and go back in and write a positive response that replaces those negative thoughts.'
       ],
       note: '(Example: “I can never do things right.” Instead write, “I do all things to the best of my ability.”)'
     },
@@ -149,7 +149,7 @@ const JOURNAL = {
         'Decluttering means removing things you no longer need to make a space more organized and pleasant.',
         'Think about things in your room, closet, or other spaces that you may need to get rid of.',
         'Decluttering can help you recognize what is taking up unnecessary space in your life.',
-        'Write down some material things you got rid of and why you got rid of it. Then think about some thoughts you need to get rid and why you need to get rid of those thoughts.'
+        'Write down some material things you got rid of and why you got rid of them. Then think about some thoughts you need to get rid of, and why you need to get rid of those thoughts.'
       ]
     },
     {
@@ -167,14 +167,14 @@ const JOURNAL = {
       body: [
         'Enlightenment is the process of gaining a deeper understanding of yourself, your experiences, and the world around you.',
         'It is the moment when greater awareness brings clarity, allowing you to see beyond what you once understood.',
-        'Think about something you gained a deeper understanding of and how that understanding change your life.'
+        'Think about something you gained a deeper understanding of and how that understanding changed your life.'
       ]
     },
     {
       n: 15,
       title: 'The Day of Stepping Out',
       body: [
-        'Have you taken out time recently to discover what your style is? How do you like to style hair? What kind of shoes do you like to wear.',
+        'Have you taken out time recently to discover what your style is? How do you like to style hair? What kind of shoes do you like to wear?',
         'Write about how you like to style your hair, the type of clothes you like to wear, and your style of shoes. Explain why these styles fit your personality and whether they make you feel the most like yourself.'
       ]
     },
@@ -201,7 +201,7 @@ const JOURNAL = {
       body: [
         'Alignment is to be placed in the proper position.',
         'Think for a moment about how you feel mentally. Is your mind at a state of peace or chaos? Today is the day to come up with a plan for managing your peace.',
-        'What are some areas of your life that you want peace in and what can you do to make that possible.'
+        'What are some areas of your life that you want peace in and what can you do to make that possible?'
       ]
     },
     {
@@ -226,7 +226,7 @@ const JOURNAL = {
       body: [
         'Self-realization is the process of understanding who you truly are, what you value, and what you want for your life.',
         'Remember, becoming your true self is not about being perfect—it is about growing, learning, and accepting who you are.',
-        'Take a moment to write your introduction again by stating your name, your likes, your personality, and some of the biggest lesson you’ve learned on this journey.'
+        'Take a moment to write your introduction again by stating your name, your likes, your personality, and some of the biggest lessons you’ve learned on this journey.'
       ]
     }
   ],

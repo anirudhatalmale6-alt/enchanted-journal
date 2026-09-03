@@ -19,6 +19,12 @@
 </head>
 <body>
 
+<div class="room" aria-hidden="true">
+  <div class="candle-glow"></div>
+  <div class="table"></div>
+  <div class="table-edge"></div>
+</div>
+
 <canvas id="fx" aria-hidden="true"></canvas>
 <div class="vignette" aria-hidden="true"></div>
 
@@ -33,6 +39,7 @@
 </header>
 
 <main class="stage" id="stage">
+  <div class="book-shadow" id="bookShadow" aria-hidden="true"></div>
   <div class="book" id="book">
     <div class="static-page static-left" aria-hidden="true"></div>
     <div class="static-page static-right" aria-hidden="true"></div>
@@ -60,6 +67,7 @@
 </div>
 
 <script src="content.js"></script>
+<script src="flowers.js"></script>
 <script src="journal.js"></script>
 </body>
 </html>

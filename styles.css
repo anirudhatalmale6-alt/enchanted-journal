@@ -35,6 +35,49 @@ body{
   -webkit-tap-highlight-color:transparent;
 }
 
+/* ---------- the room the book sits in ---------- */
+
+/* The table's top edge is pinned to the book's own bottom edge, so the book
+   rests on it at every screen size instead of floating. */
+.room{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
+
+.candle-glow{
+  position:absolute; left:50%; top:calc(50% - var(--lift, 0px) / 2 - var(--ph) * 0.62);
+  width:min(150vw, calc(var(--pw) * 5.4)); aspect-ratio:1.5;
+  transform:translate(-50%, -50%);
+  background:radial-gradient(closest-side,
+    rgba(255,196,116,.30) 0%, rgba(255,166,80,.14) 38%, rgba(255,140,60,0) 72%);
+  animation:candle 7s ease-in-out infinite;
+}
+@keyframes candle{
+  0%,100%{ opacity:.86; transform:translate(-50%,-50%) scale(1); }
+  37%    { opacity:1;   transform:translate(-50.6%,-50%) scale(1.045); }
+  61%    { opacity:.78; transform:translate(-49.5%,-50%) scale(.985); }
+}
+
+.table{
+  position:absolute; left:-6%; right:-6%;
+  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 6px);
+  bottom:-4%;
+  background:#2b170e url("assets/table.webp") center top/cover no-repeat;
+}
+/* the far edge of the table melts into the dark of the room */
+.table::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(to bottom,
+    rgba(14,7,4,.92) 0%, rgba(14,7,4,.34) 9%, rgba(14,7,4,0) 26%,
+    rgba(10,5,3,.30) 74%, rgba(8,4,2,.72) 100%);
+}
+/* a thin lit lip where the table meets the dark, so it reads as a surface */
+.table-edge{
+  position:absolute; left:-6%; right:-6%;
+  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 7px); height:3px;
+  background:linear-gradient(to right,
+    rgba(255,190,120,0) 0%, rgba(255,196,126,.30) 22%,
+    rgba(255,214,150,.50) 50%, rgba(255,196,126,.30) 78%, rgba(255,190,120,0) 100%);
+  filter:blur(1.2px);
+}
+
 /* ---------- ambient ---------- */
 
 #fx{ position:fixed; inset:0; width:100%; height:100%; z-index:5; pointer-events:none; }
@@ -87,6 +130,7 @@ body{
 .stage{
   position:absolute; inset:0;
   display:flex; align-items:center; justify-content:center;
+  padding-bottom:var(--lift, 0px);
   perspective:2600px; perspective-origin:50% 46%;
   z-index:3; overflow:hidden;
 }
@@ -98,8 +142,21 @@ body{
   height:var(--ph);
   transform-style:preserve-3d;
   transition:transform var(--flip) cubic-bezier(.42,.02,.24,1);
-  filter:drop-shadow(0 38px 46px rgba(0,0,0,.62));
+  filter:drop-shadow(0 22px 30px rgba(0,0,0,.55));
 }
+
+/* the pool of shadow the book casts onto the table; --pan follows the book */
+.book-shadow{
+  position:absolute; left:50%; z-index:0; pointer-events:none;
+  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 22px);
+  width:calc(var(--pw) * 2.35); height:calc(var(--ph) * 0.16);
+  transform:translateX(calc(-50% + var(--pan, 0px)));
+  transition:transform var(--flip) cubic-bezier(.42,.02,.24,1), width .3s ease;
+  background:radial-gradient(closest-side ellipse,
+    rgba(6,3,2,.80) 0%, rgba(6,3,2,.48) 38%, rgba(6,3,2,.16) 64%, rgba(6,3,2,0) 100%);
+  filter:blur(7px);
+}
+.book-shadow.narrow{ width:calc(var(--pw) * 1.5); }
 
 .static-page{
   position:absolute; top:0; width:var(--pw); height:var(--ph);
@@ -210,10 +267,10 @@ body{
 /* Pages carrying the ornate border must clear it — and the corner flourishes
    reach much further in than the rules do, so the top and bottom need more
    room than the sides. */
-.face.framed .page-inner{ padding:13% 9% 11.5%; }
+.face.framed .page-inner{ padding:11% 8.5% 10%; }
 .face.framed.front .page-inner{ padding-left:11%; }
 .face.framed.back  .page-inner{ padding-right:11%; }
-.face.framed .script-title{ font-size:clamp(1.35rem, 3.1vh, 2.1rem); }
+.face.framed .script-title{ font-size:clamp(1.2rem, 2.7vh, 1.8rem); margin-bottom:.6rem; }
 
 .script-title{
   font-family:'Pinyon Script', cursive;
@@ -226,12 +283,12 @@ body{
 }
 .script-title.small{ font-size:clamp(1.35rem, 3vh, 2.05rem); margin-bottom:.7rem; }
 
-p{ margin:0 0 .85em; }
+p{ margin:0 0 .72em; }
 
 .scroller{
   flex:1; overflow-y:auto;
-  font-size:clamp(.9rem, 1.85vh, 1.15rem);
-  line-height:1.62;
+  font-size:clamp(.8rem, 1.56vh, 1.02rem);
+  line-height:1.52;
   padding-right:.3rem;
   scrollbar-width:thin;
   scrollbar-color:rgba(140,96,40,.4) transparent;
@@ -274,14 +331,14 @@ p{ margin:0 0 .85em; }
 .face.back .page-inner.prompt{ padding-right:clamp(1.2rem, 3vw, 2rem); }
 
 .day-flower{
-  position:absolute; left:1.5%; top:1.5%;
-  height:97%; width:auto; max-width:26%;
-  object-fit:contain; object-position:top left;
+  /* left/top/width/height come from FLOWER_BOX, in page fractions */
+  position:absolute;
+  object-fit:fill;
   pointer-events:none;
   filter:drop-shadow(3px 4px 5px rgba(60,34,12,.32));
 }
 .prompt-body{
-  margin-left:27%;
+  margin-left:var(--text-left, 27%);
   flex:1; overflow-y:auto;
   scrollbar-width:thin; scrollbar-color:rgba(140,96,40,.4) transparent;
 }
@@ -295,7 +352,7 @@ p{ margin:0 0 .85em; }
 }
 .day-title{
   font-family:'Pinyon Script', cursive; font-weight:400;
-  font-size:clamp(1.35rem, 3.1vh, 2.1rem);
+  font-size:clamp(1.15rem, 2.7vh, 1.85rem);
   line-height:1.15; text-align:center;
   color:#2b1c10; margin:0 0 .8rem;
 }
@@ -518,8 +575,6 @@ body.single .tab{
 body.single .tab.active{ transform:translateY(-1px); min-width:34px; background:linear-gradient(to top, var(--gold), var(--gold-1)); }
 body.single .hint{ display:none; }
 body.single .controls{ bottom:.8rem; }
-body.single .day-flower{ max-width:22%; }
-body.single .prompt-body{ margin-left:24%; }
 
 @media (max-width:900px){
   .topbar{ padding:.5rem .65rem; }
