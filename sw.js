@@ -2,7 +2,7 @@
    Bump CACHE when anything in ASSETS changes, or installed copies keep the
    old files for ever. */
 
-const CACHE = 'journey-to-me-v5';
+const CACHE = 'journey-to-me-v6';
 
 const ASSETS = [
   './',
@@ -49,6 +49,25 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+
+  // The 3D scene is left alone entirely.  It is under active revision, and a
+  // cache-first copy would keep serving the version the client already saw.
+  if (url.origin === location.origin && url.pathname.includes('/3d/')) return;
+
+  /* Pages themselves come from the network first, falling back to the cache
+     only when there is no network.  Cache-first is right for the artwork,
+     which never changes silently, and wrong for the HTML, which is how a fix
+     reaches anyone who has already visited. */
+  if (req.mode === 'navigate') {
+    e.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(req).then(hit => hit || caches.match('./index.html')))
+    );
+    return;
+  }
 
   // Google Fonts: serve from cache, refresh quietly in the background, and
   // never fail the page when the device is offline.

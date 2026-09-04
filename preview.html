@@ -3,37 +3,66 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Journey to Me — walkthrough</title>
+<title>The Journey to Me — the two versions</title>
 <style>
   :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
   body {
-    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 1.2rem; padding: 2rem 1rem;
+    margin: 0; padding: 2.6rem 1rem 4rem;
     background: radial-gradient(120% 90% at 50% 0%, #3a2216 0%, #1b0f0a 60%, #100907 100%);
     color: #e8d5b5;
     font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    box-sizing: border-box;
   }
-  h1 { font-size: clamp(1.1rem, 3.4vw, 1.7rem); font-weight: 500; letter-spacing: .11em;
-       text-transform: uppercase; margin: 0; color: #e7c88a; text-align: center; }
-  p  { margin: 0; font-size: .95rem; opacity: .82; text-align: center; max-width: 46ch; }
-  video { width: min(100%, 1000px); height: auto; border-radius: 8px;
+  .wrap { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column;
+          align-items: center; gap: 1rem; text-align: center; }
+  h1 { font-size: clamp(1.15rem, 3.4vw, 1.75rem); font-weight: 500; letter-spacing: .11em;
+       text-transform: uppercase; margin: 0 0 .4rem; color: #e7c88a; }
+  h2 { font-size: clamp(.82rem, 2.2vw, .95rem); font-weight: 500; letter-spacing: .2em;
+       text-transform: uppercase; margin: 3.4rem 0 .2rem; color: #c79b62; }
+  p  { margin: 0; font-size: .96rem; opacity: .84; max-width: 52ch; line-height: 1.55; }
+  video { width: 100%; height: auto; border-radius: 8px; margin-top: .5rem;
           box-shadow: 0 26px 70px rgba(0,0,0,.7), 0 0 0 1px rgba(231,200,138,.22); background: #000; }
   a { color: #e7c88a; }
-  .row { display: flex; gap: 1.4rem; flex-wrap: wrap; justify-content: center; font-size: .92rem; }
+  .row { display: flex; gap: 1.4rem; flex-wrap: wrap; justify-content: center;
+         font-size: .92rem; margin-top: .5rem; }
+  hr { width: 60%; border: 0; border-top: 1px solid rgba(231,200,138,.16); margin: 3rem 0 0; }
 </style>
 </head>
 <body>
+<div class="wrap">
+
   <h1>The Journey to Me</h1>
+  <p>Two versions of the same journal. Both are real, working books you can
+     open, turn and write in — they only differ in how they are drawn.</p>
+
+  <h2>The 3D version</h2>
+  <p>A real three-dimensional scene: the book lying on a dark walnut table, lit
+     by candles that flicker, with crimson petals falling through the air and
+     gold dust in the light. Drag to look around it.</p>
+  <video controls playsinline preload="metadata" poster="3d/assets/poster.jpg">
+    <source src="3d/walkthrough-3d.mp4" type="video/mp4">
+    Your browser cannot play this video.
+    <a href="3d/walkthrough-3d.mp4">Download it instead.</a>
+  </video>
+  <div class="row">
+    <a href="3d/">Open the 3D journal</a>
+    <a href="3d/walkthrough-3d.mp4" download>Download this video</a>
+  </div>
+
+  <hr>
+
+  <h2>The illustrated version</h2>
+  <p>The first one — the storybook, built from the artwork in your own PDF.</p>
   <video controls playsinline preload="metadata" poster="assets/cover.webp">
     <source src="assets/walkthrough.mp4" type="video/mp4">
     Your browser cannot play this video.
     <a href="assets/walkthrough.mp4">Download it instead.</a>
   </video>
-  <p>A walkthrough of the journal — the cover, the page turns, the writing pages and the closing message.</p>
   <div class="row">
-    <a href="./">Open the journal</a>
-    <a href="assets/walkthrough.mp4" download>Download the video</a>
+    <a href="./">Open the illustrated journal</a>
+    <a href="assets/walkthrough.mp4" download>Download this video</a>
   </div>
+
+</div>
 </body>
 </html>

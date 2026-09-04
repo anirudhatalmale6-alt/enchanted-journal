@@ -5,6 +5,17 @@ phone, tablet, MacBook or laptop like an app.
 
 **Live:** https://anirudhatalmale6-alt.github.io/enchanted-journal/
 
+There are two versions of the same journal, sharing the same words:
+
+- **Illustrated** — this folder. A storybook built from the artwork in the
+  client's PDF.
+- **3D** — [`3d/`](3d/). A real three-dimensional scene: the book on a dark
+  walnut table, lit by candles, with petals falling through the air.
+  [Live](https://anirudhatalmale6-alt.github.io/enchanted-journal/3d/).
+
+Both are on the [walkthrough page](https://anirudhatalmale6-alt.github.io/enchanted-journal/preview.html),
+side by side, with a video of each.
+
 ## What's here
 
 | File | What it does |
