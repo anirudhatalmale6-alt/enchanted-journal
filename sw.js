@@ -2,7 +2,7 @@
    Bump CACHE when anything in ASSETS changes, or installed copies keep the
    old files for ever. */
 
-const CACHE = 'journey-to-me-v6';
+const CACHE = 'journey-to-me-v7';
 
 const ASSETS = [
   './',
@@ -10,20 +10,20 @@ const ASSETS = [
   './styles.css',
   './content.js',
   './journal.js',
-  './flowers.js',
   './manifest.webmanifest',
   './assets/paper.webp',
   './assets/cover.webp',
   './assets/frame.webp',
-  './assets/table.webp',
+  './assets/sky.webp',
+  './assets/clouds-far.webp',
+  './assets/clouds-near.webp',
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-180.png',
   './assets/icon-maskable-512.png'
 ];
-for (let n = 1; n <= 21; n++) {
-  ASSETS.push('./assets/flowers/day' + String(n).padStart(2, '0') + '.webp');
-}
+// addAll() is all-or-nothing: one 404 in this list and nothing is cached at
+// all, so the flower and table entries had to go with the artwork itself.
 for (let n = 1; n <= 6; n++) {
   ASSETS.push('./assets/petals/p' + n + '.webp');
 }

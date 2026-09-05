@@ -35,10 +35,17 @@
   defs.push({ kind: 'welcome' });
   defs.push({ kind: 'contents' });
 
+  // Index 0 is the front of the first leaf, so EVEN indices are right-hand
+  // pages and odd ones left-hand. The front matter above ends on index 3, which
+  // means a day block starting at 4 opens on the right — and only an EVEN block
+  // size keeps it there. Three pages a day made the prompt swap sides every
+  // other day; four (the prompt plus three to write on) pins it to the right.
+  const PAGES_PER_DAY = 4;
   JOURNAL.days.forEach(d => {
     defs.push({ kind: 'prompt', day: d });
-    defs.push({ kind: 'write', day: d, part: 1 });
-    defs.push({ kind: 'write', day: d, part: 2 });
+    for (let part = 1; part < PAGES_PER_DAY; part++) {
+      defs.push({ kind: 'write', day: d, part: part });
+    }
   });
 
   // The closing letter should face the reader on a right-hand page, with the
@@ -59,19 +66,11 @@
 
   function promptHTML(d) {
     const day = d.day;
-    // FLOWER_BOX records where the flower sat on the client's printed page, as
-    // fractions of that page, so the web version reproduces their layout
-    // rather than my guess at a margin — and nothing gets cropped.
-    const b = (typeof FLOWER_BOX !== 'undefined' && FLOWER_BOX[day.n]) ||
-              { l: 0.02, t: 0.02, w: 0.22, h: 0.96 };
-    const box = 'left:' + (b.l * 100).toFixed(3) + '%;top:' + (b.t * 100).toFixed(3) +
-                '%;width:' + (b.w * 100).toFixed(3) + '%;height:' + (b.h * 100).toFixed(3) + '%';
-    const textLeft = ((b.l + b.w) * 100 + 3).toFixed(2);
-    return '<div class="page-inner prompt" style="--text-left:' + textLeft + '%">' +
-      '<img class="day-flower" style="' + box + '"' +
-        ' src="assets/flowers/day' + String(day.n).padStart(2, '0') + '.webp"' +
-        ' alt="" loading="lazy" decoding="async">' +
-      '<div class="prompt-body">' +
+    // The pressed flowers that used to run down the gutter of every prompt page
+    // are gone at the client's request — they were cut out of a photograph of
+    // the printed book and never stopped looking trimmed at the edges.
+    return '<div class="page-inner prompt">' +
+      '<div class="prompt-body fit">' +
         '<div class="day-no">Day ' + day.n + '</div>' +
         '<h2 class="day-title">' + esc(day.title) + '</h2>' +
         paras(day.body) +
@@ -86,7 +85,7 @@
     const day = d.day;
     return '<div class="page-inner write">' +
       '<div class="write-head">' + esc(day.title) +
-        (d.part === 2 ? ' <span class="cont">' + esc(JOURNAL.strings.continued) + '</span>' : '') +
+        (d.part > 1 ? ' <span class="cont">' + esc(JOURNAL.strings.continued) + '</span>' : '') +
       '</div>' +
       '<div class="entry" contenteditable="true" spellcheck="true" role="textbox" aria-multiline="true"' +
         ' aria-label="Day ' + day.n + ' — your writing"' +
@@ -126,14 +125,14 @@
           '<div class="page-inner">' +
             '<h2 class="script-title small">' + esc(JOURNAL.welcome.title) + '<br>' +
               esc(JOURNAL.welcome.title2) + '</h2>' +
-            '<div class="scroller">' + paras(JOURNAL.welcome.body) + '</div>' +
+            '<div class="scroller fit">' + paras(JOURNAL.welcome.body) + '</div>' +
           '</div></div>';
 
       case 'contents':
         return '<div class="' + framed + '">' + chrome + frame +
           '<div class="page-inner">' +
             '<h2 class="script-title">' + esc(JOURNAL.contents.title) + '</h2>' +
-            '<ol class="toc scroller">' +
+            '<ol class="toc fit">' +
               JOURNAL.days.map(d =>
                 '<li><button type="button" class="toc-link" data-goto="' + pageOfDay[d.n] + '">' +
                   '<em>Day ' + d.n + ':</em> ' + esc(d.title) + '</button></li>').join('') +
@@ -150,7 +149,7 @@
         return '<div class="' + framed + '">' + chrome + frame +
           '<div class="page-inner">' +
             '<h2 class="script-title">' + esc(JOURNAL.closing.title) + '</h2>' +
-            '<div class="scroller">' + paras(JOURNAL.closing.body) + '</div>' +
+            '<div class="scroller fit">' + paras(JOURNAL.closing.body) + '</div>' +
             '<div class="finale-actions">' +
               '<button class="ink-btn" type="button" data-act="cover">Return to the cover</button>' +
               '<button class="ink-btn" type="button" data-act="prev">Back a page</button>' +
@@ -230,7 +229,10 @@
      3. Fit the book to the screen
      ---------------------------------------------------------------- */
 
-  const RATIO = 1.337;   // the rectified cover crop, so nothing is stretched
+  // Measured off the client's straight-on photograph: the front board is
+  // 701 x 960 px in that frame. Every page is cut to the same shape, so the
+  // cover art is never stretched to fit.
+  const RATIO = 1.370;
   let single = false;
 
   function layout() {
@@ -239,25 +241,73 @@
     single = w < 900;
     document.body.classList.toggle('single', single);
 
-    // lift the book off the bottom of the screen so the table it stands on is
-    // actually visible behind it
-    const lift = Math.round(Math.min(96, h * (single ? 0.06 : 0.11)));
+    // A small nudge upwards keeps the book clear of the page label without
+    // pushing it back into the distance — the client asked for it closer.
+    const lift = Math.round(Math.min(34, h * (single ? 0.02 : 0.03)));
     document.documentElement.style.setProperty('--lift', lift + 'px');
 
-    const availW = w - (single ? 24 : 96);
-    const availH = h - (single ? 176 : 196) - lift;
+    // On a phone the page is shown one at a time, so it has the whole width to
+    // itself — but let a little sky show down each side, or it stops reading as
+    // a book at all and just looks like a sheet of paper.
+    const availW = w - (single ? 46 : 52);
+    const availH = h - (single ? 148 : 118) - lift;
 
     let pw = single ? availW : availW / 2;
     let ph = pw * RATIO;
     if (ph > availH) { ph = availH; pw = ph / RATIO; }
 
-    pw = Math.max(190, Math.min(pw, single ? 470 : 520));
+    pw = Math.max(190, Math.min(pw, single ? 560 : 640));
     ph = pw * RATIO;
 
     document.documentElement.style.setProperty('--pw', pw.toFixed(1) + 'px');
     document.documentElement.style.setProperty('--ph', ph.toFixed(1) + 'px');
     pan(false);
     sizeCanvas();
+    fitAll();
+  }
+
+  /* ----------------------------------------------------------------
+     3b. Nothing may run off a page
+
+     The client's brief is explicit: at least an inch of margin all round and
+     no words drifting off the page. The margins are CSS; this is the other
+     half — a block tagged .fit is stepped down in size until it fits inside
+     them, so a long day never spills or hands the reader a scrollbar.
+     ---------------------------------------------------------------- */
+
+  const MIN_FIT = 0.66;
+
+  function fitOne(el) {
+    el.style.fontSize = '';
+    const parent = el.parentNode;
+    // A flex child reports its own height, not the room it has, so measure the
+    // gap between what the column can give and what its siblings already take.
+    let room = parent.clientHeight;
+    for (let i = 0; i < parent.children.length; i++) {
+      const sib = parent.children[i];
+      if (sib !== el) room -= sib.offsetHeight;
+    }
+    const cs = getComputedStyle(parent);
+    room -= parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    if (room < 40) return;
+
+    let lo = MIN_FIT, hi = 1;
+    if (el.scrollHeight <= room + 1) { return; }
+    for (let i = 0; i < 7; i++) {
+      const mid = (lo + hi) / 2;
+      el.style.fontSize = (mid * 100).toFixed(1) + '%';
+      if (el.scrollHeight <= room + 1) lo = mid; else hi = mid;
+    }
+    el.style.fontSize = (lo * 100).toFixed(1) + '%';
+  }
+
+  let fitTimer = null;
+  function fitAll() {
+    clearTimeout(fitTimer);
+    fitTimer = setTimeout(() => {
+      const els = book.querySelectorAll('.fit');
+      for (let i = 0; i < els.length; i++) fitOne(els[i]);
+    }, 30);
   }
 
   /* ----------------------------------------------------------------
@@ -397,7 +447,9 @@
       case 'closing':   return 'A Personal Message';
       case 'backboard': return 'Back cover';
       case 'prompt':    return 'Day ' + d.day.n;
-      case 'write':     return 'Day ' + d.day.n + (d.part === 2 ? ' · more' : ' · write');
+      // parts 2 and 3 are both continuations — "· write" on the third page
+      // reads as if the day had started again
+      case 'write':     return 'Day ' + d.day.n + (d.part > 1 ? ' · more' : ' · write');
       default:          return '';
     }
   }
@@ -597,7 +649,9 @@
       maxLife: 900 + Math.random() * 1700,
       twinkle: Math.random() * Math.PI * 2,
       vtwinkle: 0.05 + Math.random() * 0.12,
-      warm: Math.random() < 0.82,           // mostly gold, like the reference
+      // Against a pale sky a white spark disappears into the clouds, so the
+      // stardust is nearly all gold now — it reads on blue and on white alike.
+      warm: Math.random() < 0.93,
       drag: 0.99
     };
   }
@@ -656,8 +710,13 @@
       const wantPetals = Math.round(j.petalsLeft * (dt / j.dur) * 2.2);
       for (let k = 0; k < wantPetals && j.petalsLeft > 0; k++) {
         j.petalsLeft--;
+        // Petals are no longer drawn over the paper, so throw them from the
+        // outer edge the turning page is nearest — spawning them on the spine
+        // would just hide them until they drifted clear.
+        const out  = useX < spine ? -1 : 1;
+        const edge = out < 0 ? j.rect.x : j.rect.x + j.rect.w;
         const p = makePetal({
-          x: useX + (Math.random() - 0.5) * 60,
+          x: edge + out * Math.random() * 80 + (Math.random() - 0.5) * 26,
           y: j.rect.y + Math.random() * j.rect.h * 0.9,
           vx: (Math.random() - 0.5) * 1.7,
           vy: -0.5 + Math.random() * 1.5
@@ -669,11 +728,16 @@
     }
   }
 
-  /* Particles read as magic against the dark, as clutter over the writing, so
-     anything inside the book's footprint is quietened. */
+  /* Particles read as magic against the sky and as clutter over the writing.
+     Stardust inside the book's footprint is quietened; petals are dropped
+     outright — "no floating flowers on the page" was the client's first note. */
   let box = null, boxAge = 99;
-  const overBook = (x, y) =>
-    box && x > box.x && x < box.x + box.w && y > box.y && y < box.y + box.h;
+  const overBook = (x, y, pad) => {
+    if (!box) return false;
+    const m = pad || 0;
+    return x > box.x - m && x < box.x + box.w + m &&
+           y > box.y - m && y < box.y + box.h + m;
+  };
 
   function drawPetal(p) {
     const img = petalImgs[p.img];
@@ -681,11 +745,13 @@
     // |cos| of the spin fakes the petal turning edge-on as it falls
     const face = Math.abs(Math.cos(p.spin));
     const w = p.h * (img.naturalWidth / img.naturalHeight) * (0.18 + 0.82 * face);
-    const dim = overBook(p.x, p.y) ? 0.30 : 1;   // never fight the writing
+    // A petal is bigger than the point it is tracked by, so pull it once its
+    // edge reaches the paper rather than once its centre does.
+    if (overBook(p.x, p.y, Math.max(w, p.h) / 2)) return;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rot);
-    ctx.globalAlpha = p.alpha * dim;
+    ctx.globalAlpha = p.alpha;
     ctx.drawImage(img, -w / 2 * p.flip, -p.h / 2, w * p.flip, p.h);
     ctx.restore();
   }
@@ -699,9 +765,9 @@
     const r = d.size * (1.5 + 0.45 * Math.sin(d.twinkle));
     const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 3.0);
     if (d.warm) {
-      g.addColorStop(0, 'rgba(255,246,214,' + a + ')');
-      g.addColorStop(0.32, 'rgba(255,214,132,' + a * 0.55 + ')');
-      g.addColorStop(1, 'rgba(255,190,90,0)');
+      g.addColorStop(0, 'rgba(255,244,198,' + a + ')');
+      g.addColorStop(0.32, 'rgba(252,198,92,' + a * 0.7 + ')');
+      g.addColorStop(1, 'rgba(244,176,52,0)');
     } else {
       g.addColorStop(0, 'rgba(240,248,255,' + a + ')');
       g.addColorStop(0.32, 'rgba(196,220,255,' + a * 0.5 + ')');
@@ -906,6 +972,11 @@
   updateChrome();
   requestAnimationFrame(frame);
   setTimeout(() => burst(1, 1.4), 700);
+
+  // Pinyon Script and EB Garamond are far taller and wider than the fallback
+  // serif, so a block measured before they land fits and then overflows.
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAll);
+  window.addEventListener('load', fitAll);
 
   window.__journal = { goToPage, state, defs, LEAVES };
 })();

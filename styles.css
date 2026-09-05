@@ -14,8 +14,13 @@
   --gold-1:     #f7e2ab;
   --gold:       #cfa055;
   --gold-deep:  #8a6323;
-  --room-1:     #2a1712;
-  --room-2:     #120907;
+  --sky-high:   #76b0e8;
+  --sky-low:    #b0d6f4;
+  --sky-ink:    #26455f;   /* chrome text, dark enough to read on white cloud */
+  --sky-ink-2:  #46708f;
+
+  --margin-x: 16.7%;   /* one inch on a six-inch page */
+  --margin-y: 12.2%;
 
   --pw: 380px;
   --ph: 540px;
@@ -29,64 +34,67 @@ body{
   margin:0;
   font-family:'EB Garamond', Georgia, 'Times New Roman', serif;
   color:var(--ink);
-  background:radial-gradient(120% 90% at 50% 8%, #3d211a 0%, var(--room-1) 42%, var(--room-2) 100%);
+  background:linear-gradient(to bottom, var(--sky-high) 0%, #a8d2f5 52%, var(--sky-low) 100%);
   overflow:hidden;
   -webkit-font-smoothing:antialiased;
   -webkit-tap-highlight-color:transparent;
 }
 
-/* ---------- the room the book sits in ---------- */
+/* ---------- the sky the book sits in ----------
 
-/* The table's top edge is pinned to the book's own bottom edge, so the book
-   rests on it at every screen size instead of floating. */
+   Three layers: a graded sky plate, a thin high layer that drifts across it,
+   and the bank the book rests on, whose top edge is pinned to the book's own
+   bottom edge so it never floats free of it at any screen size.
+
+   Both cloud textures tile exactly left-to-right (they are generated on a
+   lattice indexed modulo its own width), so the drift can be a plain
+   background-position animation with no seam and no reset jump. */
+
 .room{ position:fixed; inset:0; z-index:1; pointer-events:none; overflow:hidden; }
 
-.candle-glow{
-  position:absolute; left:50%; top:calc(50% - var(--lift, 0px) / 2 - var(--ph) * 0.62);
-  width:min(150vw, calc(var(--pw) * 5.4)); aspect-ratio:1.5;
-  transform:translate(-50%, -50%);
-  background:radial-gradient(closest-side,
-    rgba(255,196,116,.30) 0%, rgba(255,166,80,.14) 38%, rgba(255,140,60,0) 72%);
-  animation:candle 7s ease-in-out infinite;
-}
-@keyframes candle{
-  0%,100%{ opacity:.86; transform:translate(-50%,-50%) scale(1); }
-  37%    { opacity:1;   transform:translate(-50.6%,-50%) scale(1.045); }
-  61%    { opacity:.78; transform:translate(-49.5%,-50%) scale(.985); }
+.sky{
+  position:absolute; inset:0;
+  background:url("assets/sky.webp") center center/cover no-repeat;
 }
 
-.table{
-  position:absolute; left:-6%; right:-6%;
-  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 6px);
-  bottom:-4%;
-  background:#2b170e url("assets/table.webp") center top/cover no-repeat;
+.sun-glow{
+  position:absolute; left:42%; top:-14%;
+  width:min(170vw, 1500px); aspect-ratio:1.35;
+  transform:translate(-50%, -50%);
+  background:radial-gradient(closest-side,
+    rgba(255,253,245,.75) 0%, rgba(255,250,232,.34) 34%, rgba(255,248,226,0) 72%);
 }
-/* the far edge of the table melts into the dark of the room */
-.table::before{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(to bottom,
-    rgba(14,7,4,.92) 0%, rgba(14,7,4,.34) 9%, rgba(14,7,4,0) 26%,
-    rgba(10,5,3,.30) 74%, rgba(8,4,2,.72) 100%);
+
+.cloud-far{
+  position:absolute; left:0; right:0; top:2%; height:44%;
+  background:url("assets/clouds-far.webp") repeat-x left center;
+  background-size:auto 100%;
+  opacity:.92;
+  animation:driftFar 260s linear infinite;
 }
-/* a thin lit lip where the table meets the dark, so it reads as a surface */
-.table-edge{
-  position:absolute; left:-6%; right:-6%;
-  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 7px); height:3px;
-  background:linear-gradient(to right,
-    rgba(255,190,120,0) 0%, rgba(255,196,126,.30) 22%,
-    rgba(255,214,150,.50) 50%, rgba(255,196,126,.30) 78%, rgba(255,190,120,0) 100%);
-  filter:blur(1.2px);
+.cloud-near{
+  position:absolute; left:0; right:0;
+  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - var(--ph) * 0.42);
+  bottom:-2%;
+  background:url("assets/clouds-near.webp") repeat-x left bottom;
+  background-size:auto 100%;
+  animation:driftNear 420s linear infinite;
 }
+/* one texture width, so the loop lands exactly where it started */
+@keyframes driftFar { from{ background-position-x:0; } to{ background-position-x:-1600px; } }
+@keyframes driftNear{ from{ background-position-x:0; } to{ background-position-x:1600px; } }
 
 /* ---------- ambient ---------- */
 
 #fx{ position:fixed; inset:0; width:100%; height:100%; z-index:5; pointer-events:none; }
 
+/* A dark vignette over a pale sky just looks like dirt on the lens. This one
+   deepens the blue at the corners instead of blackening them. */
 .vignette{
   position:fixed; inset:0; z-index:6; pointer-events:none;
   background:
-    radial-gradient(70% 60% at 50% 45%, rgba(255,214,150,.10) 0%, rgba(0,0,0,0) 55%),
-    radial-gradient(120% 100% at 50% 50%, rgba(0,0,0,0) 45%, rgba(0,0,0,.62) 100%);
+    radial-gradient(72% 62% at 50% 40%, rgba(255,255,255,.20) 0%, rgba(255,255,255,0) 60%),
+    radial-gradient(122% 104% at 50% 46%, rgba(72,136,196,0) 52%, rgba(58,116,176,.30) 100%);
 }
 
 /* ---------- chrome ---------- */
@@ -101,29 +109,30 @@ body{
 .brand{
   font-family:'Cinzel Decorative', serif;
   font-size:.92rem; letter-spacing:.16em; text-transform:uppercase;
-  color:#e6cfa4; opacity:.85; white-space:nowrap;
-  text-shadow:0 0 18px rgba(230,190,120,.35);
+  color:var(--sky-ink); opacity:.9; white-space:nowrap;
+  text-shadow:0 1px 10px rgba(255,255,255,.85);
 }
 .tools{ display:flex; align-items:center; gap:.5rem; pointer-events:auto; flex-wrap:wrap; justify-content:flex-end; }
 
 .save-state{
   font-size:.8rem; letter-spacing:.14em; text-transform:uppercase;
-  color:#cbb489; opacity:.6; transition:opacity .4s ease, color .4s ease;
+  color:var(--sky-ink-2); opacity:.75; transition:opacity .4s ease, color .4s ease;
 }
-.save-state.flash{ opacity:1; color:var(--gold-1); }
+.save-state.flash{ opacity:1; color:#1d5f8f; }
 
 .tool-btn{
   font-family:inherit; font-size:.8rem; letter-spacing:.08em;
-  color:#d8c096;
-  background:rgba(255,238,200,.05);
-  border:1px solid rgba(226,196,140,.28);
+  color:var(--sky-ink);
+  background:rgba(255,255,255,.52);
+  border:1px solid rgba(255,255,255,.85);
   border-radius:999px;
   padding:.32rem .8rem; cursor:pointer;
   white-space:nowrap;
+  box-shadow:0 2px 10px rgba(60,110,160,.18);
   transition:background .25s ease, border-color .25s ease, color .25s ease;
 }
-.tool-btn:hover{ background:rgba(255,238,200,.12); border-color:rgba(226,196,140,.55); color:var(--gold-1); }
-.tool-btn.install{ color:var(--gold-1); border-color:rgba(226,196,140,.6); background:rgba(207,160,85,.16); }
+.tool-btn:hover{ background:rgba(255,255,255,.82); border-color:#fff; color:#123f60; }
+.tool-btn.install{ color:#123f60; border-color:#fff; background:rgba(255,255,255,.78); }
 
 /* ---------- stage and book ---------- */
 
@@ -142,19 +151,20 @@ body{
   height:var(--ph);
   transform-style:preserve-3d;
   transition:transform var(--flip) cubic-bezier(.42,.02,.24,1);
-  filter:drop-shadow(0 22px 30px rgba(0,0,0,.55));
+  filter:drop-shadow(0 18px 26px rgba(40,86,132,.34));
 }
 
-/* the pool of shadow the book casts onto the table; --pan follows the book */
+/* the shadow the book lays into the cloud below it; --pan follows the book.
+   Cloud takes a soft blue shadow, not the near-black a wooden table took. */
 .book-shadow{
   position:absolute; left:50%; z-index:0; pointer-events:none;
-  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 22px);
-  width:calc(var(--pw) * 2.35); height:calc(var(--ph) * 0.16);
+  top:calc(50% - var(--lift, 0px) / 2 + var(--ph) / 2 - 26px);
+  width:calc(var(--pw) * 2.35); height:calc(var(--ph) * 0.15);
   transform:translateX(calc(-50% + var(--pan, 0px)));
   transition:transform var(--flip) cubic-bezier(.42,.02,.24,1), width .3s ease;
   background:radial-gradient(closest-side ellipse,
-    rgba(6,3,2,.80) 0%, rgba(6,3,2,.48) 38%, rgba(6,3,2,.16) 64%, rgba(6,3,2,0) 100%);
-  filter:blur(7px);
+    rgba(70,120,170,.42) 0%, rgba(70,120,170,.24) 40%, rgba(70,120,170,.08) 66%, rgba(70,120,170,0) 100%);
+  filter:blur(11px);
 }
 .book-shadow.narrow{ width:calc(var(--pw) * 1.5); }
 
@@ -255,21 +265,18 @@ body{
 
 /* ---------- page content ---------- */
 
+/* The client asked for at least an inch of margin on every side. The printed
+   page is 701 x 960 in her photograph; taking it as a 6 inch wide book, an inch
+   is 16.7% of the width and 12.2% of the height. Every page carries the same
+   margin so facing pages line up. */
 .page-inner{
   position:relative; z-index:4; flex:1;
   display:flex; flex-direction:column;
-  padding:clamp(1.5rem, 4vh, 2.5rem) clamp(1.4rem, 3.2vw, 2.3rem) clamp(1.6rem, 4vh, 2.4rem);
+  padding:var(--margin-y) var(--margin-x);
 }
-.face.front .page-inner{ padding-left:clamp(2rem, 4.4vw, 3rem); }
-.face.back  .page-inner{ padding-right:clamp(2rem, 4.4vw, 3rem); }
 .page-inner.centred{ align-items:center; justify-content:center; text-align:center; }
 
-/* Pages carrying the ornate border must clear it — and the corner flourishes
-   reach much further in than the rules do, so the top and bottom need more
-   room than the sides. */
-.face.framed .page-inner{ padding:11% 8.5% 10%; }
-.face.framed.front .page-inner{ padding-left:11%; }
-.face.framed.back  .page-inner{ padding-right:11%; }
+.face.framed .page-inner{ justify-content:center; }
 .face.framed .script-title{ font-size:clamp(1.2rem, 2.7vh, 1.8rem); margin-bottom:.6rem; }
 
 .script-title{
@@ -326,51 +333,44 @@ p{ margin:0 0 .72em; }
 .toc-link em{ font-style:italic; font-weight:600; }
 .toc-link:hover{ background:rgba(207,160,85,.22); color:#2b1608; }
 
-/* ---- a day's prompt page ---- */
-.page-inner.prompt{ padding-left:0; padding-right:clamp(1.2rem, 3vw, 2rem); }
-.face.back .page-inner.prompt{ padding-right:clamp(1.2rem, 3vw, 2rem); }
+/* ---- a day's prompt page ----
+   Every daily inspiration now sits on a right-hand page, centred between the
+   margins with nothing else on the page — the pressed flower that used to run
+   down the gutter has gone. */
+.page-inner.prompt{ justify-content:center; }
 
-.day-flower{
-  /* left/top/width/height come from FLOWER_BOX, in page fractions */
-  position:absolute;
-  object-fit:fill;
-  pointer-events:none;
-  filter:drop-shadow(3px 4px 5px rgba(60,34,12,.32));
-}
 .prompt-body{
-  margin-left:var(--text-left, 27%);
-  flex:1; overflow-y:auto;
-  scrollbar-width:thin; scrollbar-color:rgba(140,96,40,.4) transparent;
+  flex:0 1 auto; overflow:hidden;
+  text-align:center;
 }
-.prompt-body::-webkit-scrollbar{ width:5px; }
-.prompt-body::-webkit-scrollbar-thumb{ background:rgba(140,96,40,.4); border-radius:99px; }
 
 .day-no{
   font-family:'Pinyon Script', cursive;
   font-size:clamp(1rem, 2.1vh, 1.35rem);
-  text-align:center; color:#3a2614; margin-bottom:.1rem;
+  color:#3a2614; margin-bottom:.1rem;
 }
 .day-title{
   font-family:'Pinyon Script', cursive; font-weight:400;
   font-size:clamp(1.15rem, 2.7vh, 1.85rem);
-  line-height:1.15; text-align:center;
+  line-height:1.15;
   color:#2b1c10; margin:0 0 .8rem;
 }
 .prompt-body p{
   font-size:clamp(.86rem, 1.78vh, 1.1rem);
   line-height:1.6;
 }
-.day-bullets{ margin:0 0 .85em; padding-left:1.1em; list-style:none; }
+/* Centred text and a hanging bullet do not agree, so the marker goes inline
+   and the item stays centred with the rest of the page. */
+.day-bullets{ margin:0 0 .85em; padding:0; list-style:none; }
 .day-bullets li{
-  position:relative; margin-bottom:.5em;
+  margin-bottom:.5em;
   font-size:clamp(.86rem, 1.78vh, 1.1rem); line-height:1.6;
 }
-.day-bullets li::before{ content:'◆'; position:absolute; left:-1.1em; font-size:.72em; top:.25em; color:#4a3218; }
+.day-bullets li::before{ content:'◆\00a0\00a0'; font-size:.72em; color:#4a3218; vertical-align:.1em; }
 .day-note{ font-style:italic; font-size:clamp(.78rem, 1.6vh, .98rem) !important; }
 .day-cue{ margin-top:1em; font-size:clamp(.84rem, 1.7vh, 1.05rem) !important; }
 
 /* ---- a writing page ---- */
-.page-inner.write{ padding-top:clamp(1.1rem, 3vh, 1.8rem); }
 .write-head{
   font-family:'Pinyon Script', cursive;
   font-size:clamp(1.05rem, 2.3vh, 1.5rem);
@@ -508,25 +508,34 @@ p{ margin:0 0 .72em; }
   width:42px; height:42px;
   display:flex; align-items:center; justify-content:center;
   font-size:1.5rem; line-height:1; font-family:'EB Garamond', serif;
-  color:#e9cd9c;
-  background:rgba(255,238,200,.06);
-  border:1px solid rgba(226,196,140,.32);
+  color:var(--sky-ink);
+  background:rgba(255,255,255,.55);
+  border:1px solid rgba(255,255,255,.9);
   border-radius:50%; cursor:pointer;
+  box-shadow:0 2px 12px rgba(60,110,160,.2);
   transition:background .25s ease, color .25s ease, transform .2s ease;
 }
-.nav-btn:hover:not(:disabled){ background:rgba(255,238,200,.16); color:var(--gold-1); transform:translateY(-2px); }
-.nav-btn:disabled{ opacity:.25; cursor:default; }
+.nav-btn:hover:not(:disabled){ background:#fff; color:#123f60; transform:translateY(-2px); }
+.nav-btn:disabled{ opacity:.3; cursor:default; }
 .page-label{
   min-width:12rem; text-align:center;
   font-size:.82rem; letter-spacing:.16em; text-transform:uppercase;
-  color:#cbb489; opacity:.75;
+  color:var(--sky-ink); opacity:.8;
+  text-shadow:0 1px 8px rgba(255,255,255,.8);
 }
 
+/* The book now fills nearly the whole stage, so this one-time hint sits over
+   the foot of it until the reader touches something. A pill keeps it legible
+   against paper as well as against sky. */
 .hint{
-  position:fixed; bottom:4.6rem; left:50%; transform:translateX(-50%);
+  position:fixed; bottom:4.4rem; left:50%; transform:translateX(-50%);
   z-index:21; margin:0;
-  font-style:italic; font-size:.88rem; color:#c6ab7e; opacity:.6;
-  text-align:center; padding:0 1rem; pointer-events:none;
+  font-style:italic; font-size:.84rem; color:var(--sky-ink);
+  background:rgba(255,255,255,.72);
+  border:1px solid rgba(255,255,255,.9);
+  border-radius:999px;
+  box-shadow:0 3px 14px rgba(60,110,160,.22);
+  text-align:center; padding:.3rem 1rem; pointer-events:none;
   transition:opacity .6s ease;
 }
 .hint.gone{ opacity:0; }
