@@ -1572,20 +1572,27 @@ cloud.onSyncState((kind, detail) => {
 });
 
 if (cloud.configured()) {
-  // A password-reset email lands back here with a token in the URL fragment.
-  const link = cloud.claimLinkSession();
-  if (link) {
-    setResetting();
-    authEl.hidden = false;
-  } else if (cloud.currentUser()) {
-    adoptAccount();
-  } else if (localStorage.getItem(SKIP_KEY) === '1') {
-    authEl.hidden = true;      // they have already said they do not want one
-  } else {
-    setSigningUp(false);
-    authEl.hidden = false;
-  }
-  showAccount();
+  // Keys alone are not enough — the table has to exist too. Until it does the
+  // journal stays exactly as it was, rather than offering an account that
+  // cannot hold anything.
+  cloud.ready().then(ok => {
+    if (!ok) return;
+
+    // A password-reset email lands back here with a token in the URL fragment.
+    const link = cloud.claimLinkSession();
+    if (link) {
+      setResetting();
+      authEl.hidden = false;
+    } else if (cloud.currentUser()) {
+      adoptAccount();
+    } else if (localStorage.getItem(SKIP_KEY) === '1') {
+      authEl.hidden = true;      // they have already said they do not want one
+    } else {
+      setSigningUp(false);
+      authEl.hidden = false;
+    }
+    showAccount();
+  });
 }
 
 // Anything still queued when the tab closes gets one last try.

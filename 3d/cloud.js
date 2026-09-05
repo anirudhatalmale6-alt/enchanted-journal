@@ -19,6 +19,45 @@ export function configured() {
   return !!(CFG.url && CFG.anonKey);
 }
 
+/* Is the database actually set up, or are there only keys?
+
+   The project can be live and the keys correct while the `entries` table has
+   not been created yet — the SQL is a separate step, done by hand. Without this
+   check the reader would be shown a sign-in screen, allowed to make an account,
+   and then told "could not find the table public.entries" the first time they
+   wrote a word. So the journal asks once, on load, and quietly stays on
+   device-only storage until the answer is yes.
+
+   With row-level security on and nobody signed in, this returns 200 and an
+   empty list. A missing table returns 404 / PGRST205. */
+export async function ready() {
+  if (!configured()) return false;
+  try {
+    const res = await fetch(restUrl('/entries?select=page&limit=1'), {
+      headers: { 'apikey': CFG.anonKey }
+    });
+    if (res.ok) return true;
+    const body = await res.json().catch(() => null);
+    if (res.status === 404 || (body && body.code === 'PGRST205')) {
+      console.warn('[journal] Accounts are configured but the `entries` table ' +
+                   'does not exist yet — see 3d/ACCOUNTS.md, step 2. ' +
+                   'Writing is being saved to this device only.');
+      return false;
+    }
+    /* Anything else — a 401, a 403, a bad gateway — means the table is there
+       and something else is wrong. Fail OPEN: show the sign-in screen and let
+       the real request report the real reason, rather than silently deciding
+       accounts do not exist because a project is momentarily unhappy. */
+    console.warn('[journal] Account service answered', res.status, body);
+    return true;
+  } catch (e) {
+    // Offline, or the project is asleep. Device-only is the right answer to
+    // both, and the journal is meant to work with no internet anyway.
+    console.warn('[journal] Could not reach the account service:', e.message);
+    return false;
+  }
+}
+
 /* ------------------------------------------------------------- session */
 
 let session = null;
