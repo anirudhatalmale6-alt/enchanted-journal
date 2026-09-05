@@ -1388,29 +1388,64 @@ const authGo = document.getElementById('authGo');
 const authMsg = document.getElementById('authMsg');
 const authSwap = document.getElementById('authSwap');
 const authSkip = document.getElementById('authSkip');
+const authForgot = document.getElementById('authForgot');
 const accountEl = document.getElementById('account');
 const accountWho = document.getElementById('accountWho');
 const accountOut = document.getElementById('accountOut');
+const accountIn = document.getElementById('accountIn');
 
+const SKIP_KEY = 'journey-to-me-3d-device-only';
 let signingUp = false;
+let resetting = false;      // came back from a password-reset email
 
 function say(text, ok) {
   authMsg.textContent = text || '';
   authMsg.classList.toggle('ok', !!ok);
 }
 
+/* The corner strip has two jobs: it says who is signed in, and — for anyone who
+   chose to keep the journal on this device — it is the way back to an account
+   later. Without that, "just use this device" is a one-way door. */
 function showAccount() {
   const u = cloud.currentUser();
-  accountEl.hidden = !u;
-  if (u) accountWho.textContent = u.email || 'signed in';
+  const skipped = localStorage.getItem(SKIP_KEY) === '1';
+  accountEl.hidden = !(u || skipped);
+  accountWho.textContent = u ? (u.email || 'signed in') : '';
+  accountOut.hidden = !u;
+  accountIn.hidden = !!u;
 }
 
 function setSigningUp(on) {
   signingUp = on;
+  resetting = false;
+  authEmail.style.display = '';
+  authEmail.disabled = false;
   authGo.textContent = on ? 'Create account' : 'Sign in';
   authPass.setAttribute('autocomplete', on ? 'new-password' : 'current-password');
+  authPass.placeholder = 'password';
   authSwap.textContent = on ? 'I already have an account' : 'Create an account instead';
+  authSwap.hidden = false;
+  authForgot.hidden = on;
   say('');
+}
+
+/* Coming back from the reset email the same form takes a NEW password instead
+   of an old one — the token in the link is the proof of identity. */
+function setResetting() {
+  resetting = true;
+  signingUp = false;
+  authGo.textContent = 'Set new password';
+  /* Hiding a `required` field is not enough: the browser refuses to submit the
+     form because it cannot focus the empty control to complain about it, and
+     the submit handler never runs at all. It has to be disabled as well —
+     disabled controls are skipped by validation. */
+  authEmail.style.display = 'none';
+  authEmail.disabled = true;
+  authPass.placeholder = 'your new password';
+  authPass.setAttribute('autocomplete', 'new-password');
+  authSwap.hidden = true;
+  authForgot.hidden = true;
+  say('Choose a new password.', true);
 }
 
 /* Pull whatever the account holds, fold in anything written on this device
@@ -1430,14 +1465,63 @@ async function adoptAccount() {
 authSwap.addEventListener('click', () => setSigningUp(!signingUp));
 
 authSkip.addEventListener('click', () => {
+  // Remembered, or the journal asks the same question every single time it is
+  // opened — which is the fastest way to make somebody stop opening it.
+  localStorage.setItem(SKIP_KEY, '1');
   authEl.hidden = true;
   say('');
+  showAccount();
+});
+
+accountIn.addEventListener('click', () => {
+  setSigningUp(false);
+  authEl.hidden = false;
+});
+
+authForgot.addEventListener('click', async () => {
+  const email = authEmail.value.trim();
+  if (!email) { say('Put your email in the box above first.'); return; }
+  authGo.disabled = true;
+  say('Sending…');
+  try {
+    await cloud.resetPassword(email);
+    // Never confirm whether an address has an account — that turns the form
+    // into a way of finding out who is registered.
+    say('If there is an account for that address, a reset link is on its way.', true);
+  } catch (err) {
+    say(err.message || 'Could not send that just now.');
+  }
+  authGo.disabled = false;
 });
 
 authForm.addEventListener('submit', async e => {
   e.preventDefault();
   const email = authEmail.value.trim();
   const pass = authPass.value;
+
+  if (resetting) {
+    if (pass.length < 6) { say('At least six characters, please.'); return; }
+    authGo.disabled = true;
+    say('Saving your new password…');
+    try {
+      await cloud.changePassword(pass);
+      await cloud.loadUser();
+      if (await adoptAccount()) {
+        say('');
+        authPass.value = '';
+        authEmail.style.display = '';
+        authEmail.disabled = false;
+        authEl.hidden = true;
+        localStorage.removeItem(SKIP_KEY);
+        showAccount();
+      }
+    } catch (err) {
+      say(err.message || 'That link may have expired — ask for another.');
+    }
+    authGo.disabled = false;
+    return;
+  }
+
   if (!email || pass.length < 6) {
     say('An email and a password of at least six characters, please.');
     return;
@@ -1460,6 +1544,8 @@ authForm.addEventListener('submit', async e => {
       say('');
       authPass.value = '';
       authEl.hidden = true;
+      // Signing in supersedes an earlier "just this device"
+      localStorage.removeItem(SKIP_KEY);
       showAccount();
     }
   } catch (err) {
@@ -1486,9 +1572,20 @@ cloud.onSyncState((kind, detail) => {
 });
 
 if (cloud.configured()) {
+  // A password-reset email lands back here with a token in the URL fragment.
+  const link = cloud.claimLinkSession();
+  if (link) {
+    setResetting();
+    authEl.hidden = false;
+  } else if (cloud.currentUser()) {
+    adoptAccount();
+  } else if (localStorage.getItem(SKIP_KEY) === '1') {
+    authEl.hidden = true;      // they have already said they do not want one
+  } else {
+    setSigningUp(false);
+    authEl.hidden = false;
+  }
   showAccount();
-  if (cloud.currentUser()) adoptAccount();
-  else { setSigningUp(false); authEl.hidden = false; }
 }
 
 // Anything still queued when the tab closes gets one last try.

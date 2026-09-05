@@ -58,7 +58,19 @@ window.JOURNAL_CLOUD = window.JOURNAL_CLOUD || {
 That is the whole switch. With those two values empty the sign-in screen never
 appears and nothing changes; with them filled in it appears on load.
 
-## 4. Decide about confirmation emails
+## 4. Allow the journal's address back in
+
+**Authentication → URL Configuration**:
+
+- **Site URL**: `https://anirudhatalmale6-alt.github.io/enchanted-journal/3d/`
+- **Redirect URLs**: add the same address.
+
+This matters for the "forgotten your password" link. Supabase will only send
+someone back to an address on that list — leave it out and the reset email
+lands on a Supabase page and stops there. Add every address the journal is
+served from, including a custom domain later on.
+
+## 5. Decide about confirmation emails
 
 **Authentication → Providers → Email** has *Confirm email* on by default. Leave
 it on and people must click a link before they can sign in — safer, but it needs
@@ -78,4 +90,15 @@ token it says so and asks them to check their email.
 - **Signing out wipes the local copy**, because by then it lives in the account
   and the next person to open the journal on a shared computer must not find it.
 - Someone who would rather not have an account can choose *Just use this device*
-  and get exactly the old behaviour.
+  and get exactly the old behaviour. **That choice is remembered** — otherwise
+  the journal asks the same question every single time it is opened, which is
+  the fastest way to make somebody stop opening it. A *Sign in* link stays in
+  the corner so it is never a one-way door.
+- **Forgotten passwords**: the reset email comes back to this page with the new
+  session in the URL *fragment* (`#access_token=…&type=recovery`). A fragment
+  never reaches a server and is not in `location.search`; the journal reads it,
+  keeps it, and scrubs it out of the address bar so the token is not left in
+  browser history. The form then asks for a new password instead of an old one.
+  The reply is always "if there is an account for that address…", whether or not
+  there is one — otherwise the form becomes a way of finding out who has
+  registered.

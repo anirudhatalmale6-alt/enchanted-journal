@@ -124,6 +124,63 @@ export function signOut() {
   store(null);
 }
 
+/* Supabase emails a link back to whatever page asked for it, so the redirect
+   has to be this page — a reset that lands on a Supabase default page and then
+   nowhere is worse than no reset at all. */
+export async function resetPassword(email) {
+  const redirect = location.origin + location.pathname;
+  await postAuth('/recover?redirect_to=' + encodeURIComponent(redirect), { email });
+}
+
+/* Coming back from that email, the new session arrives in the URL FRAGMENT —
+   `#access_token=...&type=recovery` — which never reaches a server and is not
+   in location.search. Pick it up, keep it, and scrub it out of the address bar
+   so the token is not left sitting in history or copied out of it. */
+export function claimLinkSession() {
+  const hash = location.hash || '';
+  if (hash.indexOf('access_token=') === -1) return null;
+  const q = new URLSearchParams(hash.replace(/^#/, ''));
+  const at = q.get('access_token');
+  if (!at) return null;
+  const s = {
+    access_token: at,
+    refresh_token: q.get('refresh_token') || '',
+    expires_at: Date.now() + (parseInt(q.get('expires_in'), 10) || 3600) * 1000,
+    user: null
+  };
+  store(s);
+  history.replaceState(null, '', location.pathname + location.search);
+  return { type: q.get('type') || 'recovery' };
+}
+
+/* Who the current token belongs to. Used after a link session, which arrives
+   with a token and no user on it. */
+export async function loadUser() {
+  const token = await freshToken();
+  const res = await fetch(authUrl('/user'), {
+    headers: { 'apikey': CFG.anonKey, 'Authorization': 'Bearer ' + token }
+  });
+  if (!res.ok) throw await readError(res);
+  const u = await res.json();
+  store(Object.assign({}, session, { user: { id: u.id, email: u.email } }));
+  return currentUser();
+}
+
+export async function changePassword(password) {
+  const token = await freshToken();
+  const res = await fetch(authUrl('/user'), {
+    method: 'PUT',
+    headers: {
+      'apikey': CFG.anonKey,
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ password })
+  });
+  if (!res.ok) throw await readError(res);
+  return res.json();
+}
+
 /* ------------------------------------------------------------ entries */
 
 export async function pull() {
