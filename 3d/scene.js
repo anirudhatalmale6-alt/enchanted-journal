@@ -71,7 +71,8 @@ scene.background = new THREE.Color(0x0a0406);
 scene.fog = new THREE.FogExp2(0x0d0507, 1.35);
 
 const camera = new THREE.PerspectiveCamera(34, 1, 0.02, 12);
-camera.position.set(0.020, 0.318, 0.548);
+// 0.96 rad off vertical — inside the downward-only limit set below
+camera.position.set(0.020, 0.370, 0.508);
 
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0.030, 0.000);
@@ -80,8 +81,17 @@ controls.dampingFactor = 0.07;
 controls.enablePan = false;
 controls.minDistance = 0.28;
 controls.maxDistance = 1.10;
+/* The client asked to look at the book only from above: no glimpse of its
+   underside and no swinging up into the room behind it.
+
+   The number that decides that is the TOP of the frame, not the camera. With a
+   34 degree field of view the top edge sits 17 degrees above the view axis, so
+   at the old limit of 1.36 rad — 12.4 degrees of elevation — the top of the
+   frame was 4.6 degrees ABOVE the horizon and the far wall came into shot. At
+   1.02 rad the elevation is 31.5 degrees and the top edge is still 14 degrees
+   below the horizon, so the frame holds nothing but book and table. */
 controls.minPolarAngle = 0.22;
-controls.maxPolarAngle = 1.36;          // never let the camera under the table
+controls.maxPolarAngle = 1.02;
 // The client does not want to look around the room, but does want to see the
 // book from different angles — so the orbit is wide enough to walk round to
 // either side of it, and stops there.
@@ -949,7 +959,7 @@ function resize() {
   if (portrait !== wasPortrait) {
     wasPortrait = portrait;
     camera.position.copy(controls.target).add(
-      portrait ? new THREE.Vector3(0.02, 0.62, 0.42) : new THREE.Vector3(0.02, 0.288, 0.548));
+      portrait ? new THREE.Vector3(0.02, 0.62, 0.42) : new THREE.Vector3(0.02, 0.574, 0.819));
     document.body.classList.toggle('portrait', portrait);
   }
   reframe();
