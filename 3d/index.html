@@ -215,8 +215,10 @@
     .arrow:active { transform: scale(.94); }
     #prev { left: 20px; }
     #next { right: 20px; }
-    /* Clear of the arrows, which have moved down to the foot of the screen. */
-    #tips { font-size: 9.5px; gap: 6px 14px; bottom: 112px; max-width: calc(100vw - 40px); }
+    /* Down at the very foot, and narrow enough to pass between the two arrows
+       — at 112px it sat on the page itself, which is the one thing the reader
+       is trying to look at. */
+    #tips { font-size: 9.5px; gap: 4px 12px; bottom: 10px; max-width: calc(100vw - 150px); }
     #hint { font-size: 10px; bottom: 15vh; }
     /* On a phone the tabs would run down the middle of the page. They lie
        along the TOP instead: the foot of the screen already carries the tips,
@@ -265,10 +267,9 @@
   </div>
   <div id="tabs"></div>
   <div id="tips">
-    <span>drag to turn the book</span>
-    <span><b>click a page to write on it</b></span>
-    <span>arrow keys to turn</span>
-    <span id="sideways">turn your phone sideways for the full spread</span>
+    <span><b>tap a page to write on it</b></span>
+    <span>arrows to turn the page</span>
+    <span>pinch or scroll to zoom</span>
   </div>
 </div>
 

@@ -54,7 +54,8 @@ const state = {
   entries: JSON.parse(localStorage.getItem(STORE) || '{}'),
   focus: null,
   caretOn: true,
-  ready: false
+  ready: false,
+  side: 1                // -1 left page, +1 right — only used one page at a time
 };
 
 /* ------------------------------------------------------------ renderer */
@@ -82,20 +83,19 @@ controls.dampingFactor = 0.07;
 controls.enablePan = false;
 controls.minDistance = 0.28;
 controls.maxDistance = 1.10;
-/* The client asked to look at the book only from above: no glimpse of its
-   underside and no swinging up into the room behind it.
+/* One fixed look at the book, and no swinging about.
 
-   The number that decides that is the TOP of the frame, not the camera. With a
-   34 degree field of view the top edge sits 17 degrees above the view axis, so
-   at the old limit of 1.36 rad — 12.4 degrees of elevation — the top of the
-   frame was 4.6 degrees ABOVE the horizon and the far wall came into shot. At
-   1.02 rad the elevation is 31.5 degrees and the top edge is still 14 degrees
-   below the horizon, so the frame holds nothing but book and table. */
+   This started with a free orbit, was narrowed to a downward-only arc, and the
+   client has now asked for it to stop moving altogether: "just a straight
+   look". So rotation is off entirely. Zoom stays — she still wants to be able
+   to get closer, especially on a phone.
+
+   The limits are left in place rather than deleted. They are what keeps the
+   camera honest if rotation is ever turned back on, and OrbitControls still
+   consults them when it clamps a programmatic move. */
+controls.enableRotate = false;
 controls.minPolarAngle = 0.22;
 controls.maxPolarAngle = 1.02;
-// The client does not want to look around the room, but does want to see the
-// book from different angles — so the orbit is wide enough to walk round to
-// either side of it, and stops there.
 controls.minAzimuthAngle = -1.05;
 controls.maxAzimuthAngle = 1.05;
 controls.rotateSpeed = 0.55;
@@ -910,7 +910,40 @@ composer.addPass(new OutputPass());
    spread straight off both sides of the screen.  So the distance is worked
    out from the book's actual size and the camera's actual field of view,
    every time either of them changes. */
+/* ------------------------------------------------- one page at a time
+
+   On a phone or a tablet held upright the open spread is two pages wide in a
+   frame that is tall and narrow, so the book ends up small and the writing
+   needs pinching to read. The client asked for one page, filling the screen.
+
+   Nothing about the book changes: both pages are still there and still turn.
+   Only the camera's target and the width it fits to move — so pinch zoom, page
+   turns, the tabs and the writing all carry on working untouched. */
+let singlePage = false;
+let wasSinglePage = false;
+const pageMid = new THREE.Vector3(0, 0.030, 0);
+
+function wantsSinglePage() {
+  return singlePage && state.coverOpen > 0.62;
+}
+
+/* Which page the camera is looking at: -1 left, +1 right. The inspiration is
+   always on the right, so that is where it starts. */
+function faceSide(side) {
+  if (side) state.side = side;
+  reframe();
+}
+
 function fitDistance() {
+  if (wantsSinglePage()) {
+    // one page wide, one page tall, and a little air around it
+    const halfW = PW * 0.5 * 1.06;
+    const halfH = PH * 0.5 * 1.24;
+    const vFov = camera.fov * Math.PI / 180;
+    const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+    return Math.max(halfW / Math.tan(hFov / 2),
+                    halfH * 0.70 / Math.tan(vFov / 2));
+  }
   const wide = CW + PW * Math.min(1, state.coverOpen * 1.6);
   // More room above and below than at the sides: filling the width is what
   // makes the book read, but cropping the candles out of the top of the frame
@@ -934,9 +967,14 @@ const off = new THREE.Vector3();
 let wasPortrait = null;
 let dustScale = 1;
 function reframe() {
+  // Where the camera is pointed: the middle of the book, or the middle of one
+  // page when a phone is showing them one at a time.
+  pageMid.set(wantsSinglePage() ? (state.side || 1) * (PW / 2) : 0, 0.030, 0);
+
   const d = THREE.MathUtils.clamp(fitDistance(), controls.minDistance, controls.maxDistance);
   off.copy(camera.position).sub(controls.target);
   if (off.lengthSq() < 1e-9) off.set(0.02, 0.288, 0.548);
+  controls.target.copy(pageMid);
   camera.position.copy(controls.target).add(off.setLength(d));
   camera.lookAt(controls.target);
 }
@@ -952,15 +990,24 @@ function resize() {
   camera.fov = portrait ? 50 : 34;
   camera.updateProjectionMatrix();
   dustScale = Math.min(h / 760, 1.6);
+
+  /* One page at a time when the spread will not fit comfortably: a phone in
+     either orientation, or a tablet held upright. The test is the frame, not
+     the device — a narrow desktop window gets the same treatment, which is also
+     how it can be checked without a phone to hand. */
+  singlePage = w < 820 || portrait;
+  document.body.classList.toggle('single-page', singlePage);
+
   controls.maxDistance = Math.max(1.10, fitDistance() * 1.3);
 
-  /* Upright on a phone the frame is tall and the book is wide, so it is looked
-     at from higher up — that is the only way to spend the height on anything
-     but bare table. */
   if (portrait !== wasPortrait) {
     wasPortrait = portrait;
+    /* Looking at one page, look at it squarely — the steep angle only ever
+       existed to spend a tall frame on a wide spread, and it makes handwriting
+       harder to read. */
     camera.position.copy(controls.target).add(
-      portrait ? new THREE.Vector3(0.02, 0.62, 0.42) : new THREE.Vector3(0.02, 0.574, 0.819));
+      singlePage ? new THREE.Vector3(0.0, 0.90, 0.44)
+                 : new THREE.Vector3(0.02, 0.574, 0.819));
     document.body.classList.toggle('portrait', portrait);
   }
   reframe();
@@ -1087,15 +1134,21 @@ function canTurn() { return isOpen() && !state.turn; }
 
 function next() {
   if (!isOpen()) { openCover(); return; }
+  /* Showing one page, the arrows walk PAGE by page: left, right, then turn the
+     leaf and land on the left of the next spread — which is how a book reads. */
+  if (wantsSinglePage() && state.side < 0) { faceSide(1); return; }
   if (!canTurn() || state.leaf >= NLEAF - 1) return;
   state.turn = { from: 0, to: Math.PI, t: 0, dir: 1, leaf: state.leaf, ms: TURN_MS };
+  if (wantsSinglePage()) faceSide(-1);
   blur();
 }
 
 function prev() {
+  if (wantsSinglePage() && state.side > 0 && state.leaf > 0) { faceSide(-1); return; }
   if (isOpen() && state.leaf === 0) { closeCover(); return; }
   if (!canTurn() || state.leaf <= 0) return;
   state.turn = { from: Math.PI, to: 0, t: 0, dir: -1, leaf: state.leaf - 1, ms: TURN_MS };
+  if (wantsSinglePage()) faceSide(1);
   blur();
 }
 
@@ -1103,6 +1156,7 @@ let coverAnim = null;
 function openCover() {
   if (coverAnim || isOpen()) return;
   coverAnim = { from: state.coverOpen, to: 1, t: 0 };
+  state.side = 1;      // the first page anyone sees is a right-hand one
   hint(false);
 }
 function closeCover() {
@@ -1189,6 +1243,7 @@ canvas.addEventListener('pointerup', e => {
   // The outer eighth of a page is its corner: that is where you turn it.
   if (u > 0.88) { onRight ? next() : prev(); return; }
 
+  if (wantsSinglePage()) faceSide(onRight ? 1 : -1);
   const idx = onRight ? leafFront(state.leaf) : leafBack(state.leaf - 1);
   if (isWritable(PAGES[idx])) focusPage(idx); else blur();
 });
@@ -1285,6 +1340,11 @@ function step(dt) {
     THREE.MathUtils.clamp(0.58 / camera.position.distanceTo(controls.target), 0.45, 1.2);
 
   updateBook(t);
+  /* The framing changes as the cover swings open — whole book while it is shut,
+     one page once it is properly open. Watch for the crossing rather than
+     reframing every frame. */
+  const wantOne = wantsSinglePage();
+  if (wantOne !== wasSinglePage) { wasSinglePage = wantOne; reframe(); }
   syncTabs();
   controls.update();
   composer.render();
@@ -1319,6 +1379,9 @@ function goToPage(p) {
   if (!isOpen()) { openCover(); }
   state.turn = null;
   state.leaf = target;
+  // odd page numbers are right-hand pages here, and every day's inspiration is
+  // on one — so land the camera on the side the page it was asked for is on
+  faceSide(p % 2 === 1 ? 1 : -1);
   blur();
   updateTabs();
 }

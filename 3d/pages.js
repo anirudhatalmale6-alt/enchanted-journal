@@ -319,10 +319,20 @@ export function paintPage(ctx, page, ctxState) {
       ctx.font = `${bodySize}px ${SERIF}`;
       const bl = d.body.map(p => wrap(ctx, p, LINE_W));
 
+      /* The bullet questions and the italic aside are part of the client's own
+         wording and have to be on the page. Only two of the twenty-one days
+         carry them, which is exactly why they went unnoticed here for so long —
+         the storybook version has always drawn them. */
+      const bullets = (d.bullets || []).map(t => wrap(ctx, '◆  ' + t, LINE_W));
+      ctx.font = `italic ${bodySize * 0.86}px ${SERIF}`;
+      const noteLines = d.note ? wrap(ctx, d.note, LINE_W) : [];
+
       const h = 40 * scale                                   // DAY NN
               + tl.length * titleGap
               + 60 * scale                                   // flourish
-              + bl.reduce((s, ls) => s + ls.length * bodyGap + paraGap, 0);
+              + bl.reduce((s, ls) => s + ls.length * bodyGap + paraGap, 0)
+              + bullets.reduce((s, ls) => s + ls.length * bodyGap + paraGap * 0.6, 0)
+              + (noteLines.length ? noteLines.length * bodyGap * 0.9 + paraGap : 0);
 
       if (h > AVAIL && scale > 0.62) continue;
 
@@ -349,6 +359,18 @@ export function paintPage(ctx, page, ctxState) {
         ls.forEach(l => { y += bodyGap; ctx.fillText(l, PAGE_W / 2, y); });
         y += paraGap;
       });
+
+      bullets.forEach(ls => {
+        ls.forEach(l => { y += bodyGap; ctx.fillText(l, PAGE_W / 2, y); });
+        y += paraGap * 0.6;
+      });
+
+      if (noteLines.length) {
+        ctx.font = `italic ${bodySize * 0.86}px ${SERIF}`;
+        ctx.fillStyle = INK_SOFT;
+        y += paraGap;
+        noteLines.forEach(l => { y += bodyGap * 0.9; ctx.fillText(l, PAGE_W / 2, y); });
+      }
       break;
     }
 
