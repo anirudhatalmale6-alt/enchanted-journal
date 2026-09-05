@@ -21,6 +21,7 @@ import { RenderPass } from './lib/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from './lib/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from './lib/postprocessing/OutputPass.js';
 import { buildPages, paintPage, isWritable, dayPage, PAGE_W, PAGE_H } from './pages.js';
+import * as cloud from './cloud.js';
 
 /* ------------------------------------------------------------ the book */
 
@@ -1138,7 +1139,11 @@ function blur() {
 input.addEventListener('input', () => {
   if (state.focus === null) return;
   state.entries[state.focus] = input.value;
+  // The device copy is written every keystroke and is what makes the journal
+  // work with no internet. The account copy, if there is one, is queued and
+  // sent after a pause.
   localStorage.setItem(STORE, JSON.stringify(state.entries));
+  cloud.save(state.focus, input.value);
   repaint(state.focus);
 });
 input.addEventListener('keydown', e => {
@@ -1367,6 +1372,127 @@ function updateTabs() {
     t.el.classList.toggle('active', t.day === null ? !open : shown.has(t.day));
   });
 }
+
+/* ------------------------------------------------------------ accounts
+
+   All of this is dormant until config.js has a project url and an anon key in
+   it. Without them `cloud.configured()` is false, the sign-in screen is never
+   shown, and the journal saves to the device exactly as it did before — which
+   is also the behaviour anyone gets who chooses "just use this device". */
+
+const authEl = document.getElementById('auth');
+const authForm = document.getElementById('authForm');
+const authEmail = document.getElementById('authEmail');
+const authPass = document.getElementById('authPass');
+const authGo = document.getElementById('authGo');
+const authMsg = document.getElementById('authMsg');
+const authSwap = document.getElementById('authSwap');
+const authSkip = document.getElementById('authSkip');
+const accountEl = document.getElementById('account');
+const accountWho = document.getElementById('accountWho');
+const accountOut = document.getElementById('accountOut');
+
+let signingUp = false;
+
+function say(text, ok) {
+  authMsg.textContent = text || '';
+  authMsg.classList.toggle('ok', !!ok);
+}
+
+function showAccount() {
+  const u = cloud.currentUser();
+  accountEl.hidden = !u;
+  if (u) accountWho.textContent = u.email || 'signed in';
+}
+
+function setSigningUp(on) {
+  signingUp = on;
+  authGo.textContent = on ? 'Create account' : 'Sign in';
+  authPass.setAttribute('autocomplete', on ? 'new-password' : 'current-password');
+  authSwap.textContent = on ? 'I already have an account' : 'Create an account instead';
+  say('');
+}
+
+/* Pull whatever the account holds, fold in anything written on this device
+   before signing in, and repaint whatever is on screen. */
+async function adoptAccount() {
+  try {
+    state.entries = await cloud.merge(state.entries);
+    localStorage.setItem(STORE, JSON.stringify(state.entries));
+    live.forEach((slot, idx) => paint(slot, idx));
+  } catch (e) {
+    say('Signed in, but could not load your writing: ' + e.message);
+    return false;
+  }
+  return true;
+}
+
+authSwap.addEventListener('click', () => setSigningUp(!signingUp));
+
+authSkip.addEventListener('click', () => {
+  authEl.hidden = true;
+  say('');
+});
+
+authForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = authEmail.value.trim();
+  const pass = authPass.value;
+  if (!email || pass.length < 6) {
+    say('An email and a password of at least six characters, please.');
+    return;
+  }
+  authGo.disabled = true;
+  say(signingUp ? 'Creating your account…' : 'Signing in…');
+  try {
+    if (signingUp) {
+      const r = await cloud.signUp(email, pass);
+      if (r.needsConfirmation) {
+        say('Almost there — check your email and click the link, then sign in.', true);
+        setSigningUp(false);
+        authGo.disabled = false;
+        return;
+      }
+    } else {
+      await cloud.signIn(email, pass);
+    }
+    if (await adoptAccount()) {
+      say('');
+      authPass.value = '';
+      authEl.hidden = true;
+      showAccount();
+    }
+  } catch (err) {
+    say(err.message || 'That did not work. Please try again.');
+  }
+  authGo.disabled = false;
+});
+
+accountOut.addEventListener('click', async () => {
+  try { await cloud.flushNow(); } catch (e) { /* nothing more we can do */ }
+  cloud.signOut();
+  // The writing belongs to the account now, so it must not be left sitting on
+  // a shared computer for whoever opens the journal next.
+  state.entries = {};
+  localStorage.removeItem(STORE);
+  live.forEach((slot, idx) => paint(slot, idx));
+  showAccount();
+  setSigningUp(false);
+  authEl.hidden = false;
+});
+
+cloud.onSyncState((kind, detail) => {
+  if (kind === 'error') say('Could not reach your account: ' + detail);
+});
+
+if (cloud.configured()) {
+  showAccount();
+  if (cloud.currentUser()) adoptAccount();
+  else { setSigningUp(false); authEl.hidden = false; }
+}
+
+// Anything still queued when the tab closes gets one last try.
+window.addEventListener('beforeunload', () => { cloud.flushNow(); });
 
 /* -------------------------------------------------------------- start */
 

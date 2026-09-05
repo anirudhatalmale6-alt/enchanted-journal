@@ -135,6 +135,67 @@
   body.day #boot h1 { color: #1b3e5c; }
   body.day #boot p { color: #46708f; }
 
+  /* ---- sign in ----
+     Only ever shown when config.js has been filled in. With no account set up
+     the journal behaves as it always has and none of this appears. */
+  #auth {
+    position: fixed; inset: 0; z-index: 50;
+    display: grid; place-items: center; padding: 1.5rem;
+    background: radial-gradient(120% 90% at 50% 20%, #2a1008 0%, #0a0406 70%);
+  }
+  #auth[hidden] { display: none; }
+  body.day #auth { background: linear-gradient(to bottom, #76b0e8 0%, #a8d2f5 60%, #b0d6f4 100%); }
+
+  #authCard {
+    width: min(23rem, 100%); text-align: center;
+    display: flex; flex-direction: column; gap: .85rem;
+  }
+  #authCard h1 {
+    margin: 0; font: 400 30px/1.2 Didot,"Bodoni MT",Georgia,serif;
+    color: var(--gold); letter-spacing: .02em;
+  }
+  body.day #authCard h1 { color: #1b3e5c; }
+  #authLead { margin: 0 0 .4rem; font-size: 13px; color: #a98a63; line-height: 1.55; }
+  body.day #authLead { color: #2c5170; }
+  #authForm { display: flex; flex-direction: column; gap: .55rem; }
+  #auth input {
+    font: 15px/1.4 inherit; color: #f0e2c8;
+    background: rgba(255,240,214,.06);
+    border: 1px solid rgba(217,172,98,.34);
+    border-radius: 7px; padding: .68rem .8rem; outline: none;
+  }
+  #auth input:focus { border-color: rgba(217,172,98,.85); background: rgba(255,240,214,.11); }
+  body.day #auth input { color: #17364d; background: rgba(255,255,255,.72); border-color: rgba(255,255,255,.9); }
+  #authGo {
+    font: 12px/1 inherit; letter-spacing: .18em; text-transform: uppercase;
+    padding: .8rem; margin-top: .25rem; cursor: pointer;
+    border: 0; border-radius: 999px;
+    background: linear-gradient(to bottom, #e7c489, #cfa055); color: #2a1608;
+  }
+  #authGo:disabled { opacity: .5; cursor: default; }
+  #authMsg { margin: 0; font-size: 12.5px; line-height: 1.5; min-height: 1.2em; color: #e08e7a; }
+  #authMsg.ok { color: #9fc48a; }
+  body.day #authMsg { color: #9c3722; }
+  body.day #authMsg.ok { color: #1f6b3a; }
+  .authLink {
+    background: none; border: 0; cursor: pointer; padding: .2rem;
+    font: 12px/1.5 inherit; letter-spacing: .1em; text-transform: uppercase;
+    color: #a98a63; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .authLink:hover { color: var(--gold); }
+  body.day .authLink { color: #2c5170; }
+  body.day .authLink:hover { color: #0e3b5c; }
+
+  #account {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px;
+    z-index: 6; display: flex; align-items: center; gap: .6rem;
+    pointer-events: auto; font-size: 11px; letter-spacing: .1em;
+    color: #a98a63; max-width: 40vw;
+  }
+  #account[hidden] { display: none; }
+  #accountWho { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  body.day #account { color: #2c5170; }
+
   /* Where the keystrokes actually land.  It is never seen — the letters are
      painted onto the page in the scene — but it has to be a real field so a
      phone will put its keyboard up. */
@@ -197,6 +258,10 @@
     <button class="mode" id="modeCandle" type="button">Candlelight</button>
     <button class="mode" id="modeDay" type="button">Daylight sky</button>
   </div>
+  <div id="account" hidden>
+    <span id="accountWho"></span>
+    <button class="authLink" id="accountOut" type="button">Sign out</button>
+  </div>
   <div id="tabs"></div>
   <div id="tips">
     <span>drag to turn the book</span>
@@ -206,9 +271,27 @@
   </div>
 </div>
 
+<div id="auth" hidden>
+  <div id="authCard">
+    <h1>The Journey to Me</h1>
+    <p id="authLead">Sign in, and your journal is yours on any device you open it on.</p>
+    <form id="authForm" autocomplete="on">
+      <input id="authEmail" type="email" name="email" autocomplete="email"
+             placeholder="your email" required>
+      <input id="authPass" type="password" name="password" autocomplete="current-password"
+             placeholder="password" minlength="6" required>
+      <button id="authGo" type="submit">Sign in</button>
+    </form>
+    <p id="authMsg"></p>
+    <button class="authLink" id="authSwap" type="button">Create an account instead</button>
+    <button class="authLink" id="authSkip" type="button">Just use this device</button>
+  </div>
+</div>
+
 <textarea id="keys" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"></textarea>
 
 <script src="../content.js"></script>
+<script src="./config.js"></script>
 <script type="importmap">
 { "imports": { "three": "./lib/three.module.js" } }
 </script>

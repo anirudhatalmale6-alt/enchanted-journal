@@ -25,6 +25,9 @@ flicker.
 | `index.html` | The page shell, the on-screen controls and the handwriting font |
 | `scene.js` | The whole scene: table, candles, book, page turning, petals, dust, input |
 | `pages.js` | Paints each page onto a 2D canvas, which becomes a texture |
+| `cloud.js` | Accounts and cloud storage, over `fetch` — no SDK |
+| `config.js` | The two values that switch accounts on. Empty = device only |
+| `ACCOUNTS.md` | How to turn accounts on, and the one SQL policy that secures them |
 | `lib/` | three.js r169, its orbit controls and the bloom pass, vendored |
 | `assets/` | Wood and leather maps, the petals, the handwriting font |
 | `../assets/sky.webp`, `clouds-*.webp` | The sky and cloud plates, shared with the storybook version |
@@ -131,5 +134,8 @@ a second per screenshot.
   and the azimuth stops at ±1.05 rad either side.
 - The service worker deliberately does not cache anything under `/3d/`, so a
   change here reaches everyone on their next visit.
+- **Accounts are dormant until `config.js` is filled in.** With it empty there
+  is no sign-in screen and the journal behaves exactly as it always has. See
+  [ACCOUNTS.md](ACCOUNTS.md).
 - three.js is MIT; the Caveat handwriting font is SIL Open Font License. Both
   licences are alongside the files.
