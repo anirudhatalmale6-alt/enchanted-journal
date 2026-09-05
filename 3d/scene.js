@@ -1485,9 +1485,16 @@ authForgot.addEventListener('click', async () => {
   say('Sending…');
   try {
     await cloud.resetPassword(email);
-    // Never confirm whether an address has an account — that turns the form
-    // into a way of finding out who is registered.
-    say('If there is an account for that address, a reset link is on its way.', true);
+    /* Never confirm whether an address has an account — that turns the form
+       into a way of finding out who is registered.
+
+       Do say what to look for, though. The first person to use this went to her
+       inbox, found an email with the journal's name on it, clicked the link in
+       that one — and it was the wrong email entirely. Naming the subject line
+       costs nothing and saves the guess. */
+    say('If there is an account for that address, a link is on its way. Look for ' +
+        'an email titled “Reset Your Password” — check your spam folder if it ' +
+        'is not there.', true);
   } catch (err) {
     say(err.message || 'Could not send that just now.');
   }

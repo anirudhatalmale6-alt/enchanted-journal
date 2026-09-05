@@ -94,6 +94,13 @@ token it says so and asks them to check their email.
   the journal asks the same question every single time it is opened, which is
   the fastest way to make somebody stop opening it. A *Sign in* link stays in
   the corner so it is never a one-way door.
+- **Which email to open.** The reset mail arrives from Supabase with the
+  subject **"Reset Your Password"**. It is not the only email an inbox will have
+  about this journal, and the first person to use it opened a notification email
+  from elsewhere that happened to carry the journal's name, clicked the link in
+  that, and landed on a plain sign-in screen with no idea why. The link in that
+  other mail was the journal's ordinary address — no token on the end — so
+  nothing could have happened. The app now names the subject line when it sends.
 - **Forgotten passwords**: the reset email comes back to this page with the new
   session in the URL *fragment* (`#access_token=…&type=recovery`). A fragment
   never reaches a server and is not in `location.search`; the journal reads it,
