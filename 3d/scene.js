@@ -73,8 +73,11 @@ scene.background = new THREE.Color(0x0a0406);
 scene.fog = new THREE.FogExp2(0x0d0507, 1.35);
 
 const camera = new THREE.PerspectiveCamera(34, 1, 0.02, 12);
-// 0.96 rad off vertical — inside the downward-only limit set below
-camera.position.set(0.020, 0.370, 0.508);
+/* Almost straight down. "A straight look at the pages" means looking square at
+   them, so they read as rectangles rather than as a raking, foreshortened
+   perspective — the 10 degrees that are left keep a sliver of the page block
+   visible, so it still reads as a real book with thickness. */
+camera.position.set(0, 0.500, 0.088);
 
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0.030, 0.000);
@@ -94,7 +97,7 @@ controls.maxDistance = 1.10;
    camera honest if rotation is ever turned back on, and OrbitControls still
    consults them when it clamps a programmatic move. */
 controls.enableRotate = false;
-controls.minPolarAngle = 0.22;
+controls.minPolarAngle = 0.05;
 controls.maxPolarAngle = 1.02;
 controls.minAzimuthAngle = -1.05;
 controls.maxAzimuthAngle = 1.05;
@@ -942,7 +945,7 @@ function fitDistance() {
     const vFov = camera.fov * Math.PI / 180;
     const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
     return Math.max(halfW / Math.tan(hFov / 2),
-                    halfH * 0.70 / Math.tan(vFov / 2));
+                    halfH * foreshorten() / Math.tan(vFov / 2));
   }
   const wide = CW + PW * Math.min(1, state.coverOpen * 1.6);
   // More room above and below than at the sides: filling the width is what
@@ -953,14 +956,24 @@ function fitDistance() {
   // close up this already is, so daylight is framed exactly as candlelight is.
   // A closer daylight frame was tried and it clipped the fore edge; "cropped"
   // is the one word this client has used about every draft.
-  const halfW = wide * 0.5 * 1.30;
-  const halfH = CH * 0.5 * 1.75;
+  const halfW = wide * 0.5 * 1.12;
+  const halfH = CH * 0.5 * 1.14;
   const vFov = camera.fov * Math.PI / 180;
   const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
   const dW = halfW / Math.tan(hFov / 2);
-  // Lying flat and seen from a low angle, the book's depth foreshortens.
-  const dH = halfH * 0.70 / Math.tan(vFov / 2);
+  const dH = halfH * foreshorten() / Math.tan(vFov / 2);
   return Math.max(dW, dH);
+}
+
+/* How much of the book's depth the camera actually sees: cos of the angle off
+   vertical. Straight down it is 1 and none of the depth is lost; from a low
+   angle it shrinks. This used to be the constant 0.70, which was right for the
+   old raking view and framed a top-down one far too loosely. */
+const fsVec = new THREE.Vector3();
+function foreshorten() {
+  fsVec.copy(camera.position).sub(controls.target);
+  const r = fsVec.length();
+  return r < 1e-6 ? 1 : THREE.MathUtils.clamp(fsVec.y / r, 0.55, 1);
 }
 
 const off = new THREE.Vector3();
@@ -1006,8 +1019,7 @@ function resize() {
        existed to spend a tall frame on a wide spread, and it makes handwriting
        harder to read. */
     camera.position.copy(controls.target).add(
-      singlePage ? new THREE.Vector3(0.0, 0.90, 0.44)
-                 : new THREE.Vector3(0.02, 0.574, 0.819));
+      new THREE.Vector3(0, 0.500, 0.088));
     document.body.classList.toggle('portrait', portrait);
   }
   reframe();
