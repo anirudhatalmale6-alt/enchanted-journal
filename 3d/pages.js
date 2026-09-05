@@ -16,7 +16,7 @@
 const J = (typeof JOURNAL !== 'undefined') ? JOURNAL : window.JOURNAL;
 
 export const PAGE_W = 900;
-export const PAGE_H = 1203;             // 1.337, the rectified cover's ratio
+export const PAGE_H = 1233;             // 1.370, the straight-on cover's ratio
 
 const INK = '#241206';
 const INK_SOFT = '#54341f';
@@ -32,18 +32,28 @@ const HAND = 'Caveat,"Snell Roundhand","Bradley Hand","Segoe Script","Brush Scri
 
 /* Page 0 is the cover art, which lives on the cover board rather than on a
    leaf.  Everything from index 1 on is a leaf face: leaf j shows page 1+2j on
-   its front and page 2+2j on its back.
+   its FRONT and page 2+2j on its BACK.  The front of a leaf is the RIGHT page
+   of a spread, so ODD page numbers are right-hand pages here.
 
-   Each day gets four pages — the prompt, then three to write on.  Four is not
-   arbitrary: with an odd block the prompt and the writing would swap sides of
-   the spread every single day.  At four, the prompt always falls on the left
-   and you always write on the right. */
+   The client wants every daily inspiration on the right.  Two things make that
+   true and both are arithmetic:
+
+     - each day's block must be an EVEN number of pages, or the parity shifts
+       and the inspiration swaps sides every other day.  Four: the inspiration
+       and three pages to write on.
+     - the first inspiration must start on an odd index.  The front matter is
+       four pages (0-3), which would put it on 4 — the left.  One blank page
+       after the contents moves every one of the 21 onto an odd page, and a
+       blank verso facing the opening page is what a printed book does anyway. */
+const FRONT_MATTER = 5;
+
 export function buildPages() {
   const p = [
     { t: 'cover' },
     { t: 'belongs' },
     { t: 'welcome' },
-    { t: 'contents' }
+    { t: 'contents' },
+    { t: 'blank' }
   ];
   J.days.forEach(d => {
     p.push({ t: 'prompt', day: d });
@@ -57,7 +67,7 @@ export function buildPages() {
 }
 
 /* Where a day's prompt sits, for the table of contents. */
-export function dayPage(n) { return 4 + (n - 1) * 4; }
+export function dayPage(n) { return FRONT_MATTER + (n - 1) * 4; }
 
 /* ------------------------------------------------------------- utilities */
 
@@ -137,13 +147,18 @@ function paper(ctx, tex) {
 
 /* --------------------------------------------------------- ruled writing */
 
-const LINE_TOP = 250, LINE_GAP = 62, MARGIN = 118;
+/* At least an inch of margin on every side, as the client asked. Taking the
+   printed book as six inches wide, an inch is 16.7% of the width and 12.2% of
+   the height — on this 900 x 1233 canvas both come out at 150px. */
+const MARGIN = 150, MARGIN_Y = 150;
+const LINE_TOP = 268, LINE_GAP = 62;
 const LINE_W = PAGE_W - MARGIN * 2;
+const TEXT_TOP = MARGIN_Y, TEXT_BOT = PAGE_H - MARGIN_Y;
 
 function rules(ctx, from) {
   ctx.strokeStyle = RULE;
   ctx.lineWidth = 1.4;
-  for (let y = from; y < PAGE_H - 150; y += LINE_GAP) {
+  for (let y = from; y < TEXT_BOT; y += LINE_GAP) {
     ctx.beginPath();
     ctx.moveTo(MARGIN, y);
     ctx.lineTo(PAGE_W - MARGIN, y);
@@ -151,7 +166,7 @@ function rules(ctx, from) {
   }
 }
 
-function nLines(from) { return Math.floor((PAGE_H - 150 - from) / LINE_GAP); }
+function nLines(from) { return Math.floor((TEXT_BOT - from) / LINE_GAP); }
 
 /* The client's handwriting, laid along the ruled lines.  Returns how many
    characters were consumed, so a long answer can run onto the next page. */
@@ -194,6 +209,13 @@ export function paintPage(ctx, page, ctxState) {
 
   paper(ctx, paperImg);
 
+  // The blank verso that puts every inspiration on a right-hand page. It gets
+  // the frame so it does not read as a page that failed to load.
+  if (page.t === 'blank') {
+    frame(ctx, 46);
+    return;
+  }
+
   if (page.t === 'endpaper') {
     frame(ctx, 54);
     ctx.textAlign = 'center';
@@ -214,21 +236,22 @@ export function paintPage(ctx, page, ctxState) {
   if (page.t === 'belongs') {
     ctx.fillStyle = GOLD;
     ctx.font = `54px ${DISPLAY}`;
-    ctx.fillText(J.belongs.heading, PAGE_W / 2, 360);
-    flourish(ctx, PAGE_W / 2, 410, 260);
+    const mid = (TEXT_TOP + TEXT_BOT) / 2;
+    ctx.fillText(J.belongs.heading, PAGE_W / 2, mid - 120);
+    flourish(ctx, PAGE_W / 2, mid - 70, 260);
     ctx.strokeStyle = RULE;
     ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(MARGIN + 30, 560);
-    ctx.lineTo(PAGE_W - MARGIN - 30, 560);
+    ctx.moveTo(MARGIN, mid + 80);
+    ctx.lineTo(PAGE_W - MARGIN, mid + 80);
     ctx.stroke();
     const name = entries[page.i] || '';
     ctx.font = `52px ${HAND}`;
     ctx.fillStyle = '#2f3a52';
-    ctx.fillText(name, PAGE_W / 2, 546);
+    ctx.fillText(name, PAGE_W / 2, mid + 66);
     if (focus === page.i && caretOn) {
       const w = ctx.measureText(name).width;
-      ctx.fillRect(PAGE_W / 2 + w / 2 + 5, 512, 3, 40);
+      ctx.fillRect(PAGE_W / 2 + w / 2 + 5, mid + 32, 3, 40);
     }
     return;
   }
@@ -236,51 +259,103 @@ export function paintPage(ctx, page, ctxState) {
   if (page.t === 'welcome') {
     ctx.fillStyle = GOLD;
     ctx.font = `40px ${DISPLAY}`;
-    ctx.fillText(J.welcome.title, PAGE_W / 2, 168);
+    ctx.fillText(J.welcome.title, PAGE_W / 2, TEXT_TOP + 34);
     ctx.font = `50px ${DISPLAY}`;
-    ctx.fillText(J.welcome.title2, PAGE_W / 2, 226);
-    flourish(ctx, PAGE_W / 2, 268, 240);
-    body(ctx, J.welcome.body, 330);
+    ctx.fillText(J.welcome.title2, PAGE_W / 2, TEXT_TOP + 92);
+    flourish(ctx, PAGE_W / 2, TEXT_TOP + 134, 240);
+    body(ctx, J.welcome.body, TEXT_TOP + 196);
     return;
   }
 
+  /* Contents, centred. Each line is one unit — a gold day number and the title
+     — measured together and then placed about the middle of the page, so the
+     column reads as centred rather than as a left-aligned list that happens to
+     sit in the middle. */
   if (page.t === 'contents') {
+    ctx.textAlign = 'center';
     ctx.fillStyle = GOLD;
     ctx.font = `50px ${DISPLAY}`;
-    ctx.fillText(J.contents.title, PAGE_W / 2, 160);
-    flourish(ctx, PAGE_W / 2, 200, 240);
+    ctx.fillText(J.contents.title, PAGE_W / 2, TEXT_TOP + 44);
+    flourish(ctx, PAGE_W / 2, TEXT_TOP + 84, 240);
+
+    const rows = J.days.map(d => ({
+      num: String(d.n).padStart(2, '0'),
+      title: d.title.length > 36 ? d.title.slice(0, 35) + '…' : d.title
+    }));
+
+    const top = TEXT_TOP + 132;
+    const gap = Math.min(40.5, (TEXT_BOT - top) / rows.length);
     ctx.textAlign = 'left';
     ctx.font = `23px ${SERIF}`;
-    let y = 262;
-    J.days.forEach(d => {
+    const GAP_NUM = 16;
+
+    rows.forEach((r, i) => {
+      const y = top + i * gap;
+      const wn = ctx.measureText(r.num).width;
+      const wt = ctx.measureText(r.title).width;
+      let x = (PAGE_W - (wn + GAP_NUM + wt)) / 2;
       ctx.fillStyle = GOLD;
-      ctx.fillText(String(d.n).padStart(2, '0'), MARGIN - 26, y);
+      ctx.fillText(r.num, x, y);
       ctx.fillStyle = INK;
-      const t = d.title.length > 34 ? d.title.slice(0, 33) + '…' : d.title;
-      ctx.fillText(t, MARGIN + 18, y);
-      y += 40.5;
+      ctx.fillText(r.title, x + wn + GAP_NUM, y);
     });
     return;
   }
 
+  /* The daily inspiration. Centred, and balanced between the margins rather
+     than pinned to a fixed y — a two-line title used to push a long day's text
+     down past the foot of the page. The block is measured first, shrunk if it
+     still will not fit, and only then drawn. */
   if (page.t === 'prompt') {
     const d = page.day;
-    ctx.fillStyle = GOLD;
-    ctx.font = `600 26px ${SERIF}`;
-    ctx.letterSpacing = '6px';
-    ctx.fillText('DAY ' + String(d.n).padStart(2, '0'), PAGE_W / 2, 158);
-    ctx.letterSpacing = '0px';
-    ctx.font = `44px ${DISPLAY}`;
-    ctx.fillStyle = '#7d1f33';
-    const tl = wrap(ctx, d.title, LINE_W);
-    let y = 216;
-    tl.forEach(l => { ctx.fillText(l, PAGE_W / 2, y); y += 52; });
-    flourish(ctx, PAGE_W / 2, y + 6, 230);
-    body(ctx, d.body, y + 66);
+    const AVAIL = TEXT_BOT - TEXT_TOP - 44;   // room, less the "answer" line
+
+    for (let scale = 1; ; scale -= 0.06) {
+      const titleSize = 44 * scale, titleGap = 52 * scale;
+      const bodySize = 29 * scale, bodyGap = 40 * scale, paraGap = 18 * scale;
+
+      ctx.font = `${titleSize}px ${DISPLAY}`;
+      const tl = wrap(ctx, d.title, LINE_W);
+      ctx.font = `${bodySize}px ${SERIF}`;
+      const bl = d.body.map(p => wrap(ctx, p, LINE_W));
+
+      const h = 40 * scale                                   // DAY NN
+              + tl.length * titleGap
+              + 60 * scale                                   // flourish
+              + bl.reduce((s, ls) => s + ls.length * bodyGap + paraGap, 0);
+
+      if (h > AVAIL && scale > 0.62) continue;
+
+      let y = TEXT_TOP + Math.max(0, (AVAIL - h) / 2) + 30 * scale;
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = GOLD;
+      ctx.font = `600 ${26 * scale}px ${SERIF}`;
+      ctx.letterSpacing = `${6 * scale}px`;
+      ctx.fillText('DAY ' + String(d.n).padStart(2, '0'), PAGE_W / 2, y);
+      ctx.letterSpacing = '0px';
+      y += 40 * scale;
+
+      ctx.font = `${titleSize}px ${DISPLAY}`;
+      ctx.fillStyle = '#7d1f33';
+      tl.forEach(l => { y += titleGap; ctx.fillText(l, PAGE_W / 2, y); });
+
+      flourish(ctx, PAGE_W / 2, y + 26 * scale, 230 * scale);
+      y += 60 * scale;
+
+      ctx.font = `${bodySize}px ${SERIF}`;
+      ctx.fillStyle = INK;
+      bl.forEach(ls => {
+        ls.forEach(l => { y += bodyGap; ctx.fillText(l, PAGE_W / 2, y); });
+        y += paraGap;
+      });
+      break;
+    }
+
     ctx.font = `italic 24px ${SERIF}`;
     ctx.fillStyle = INK_SOFT;
     ctx.textAlign = 'center';
-    ctx.fillText(J.strings.answerHere, PAGE_W / 2, PAGE_H - 108);
+    ctx.fillText(J.strings.answerHere, PAGE_W / 2, TEXT_BOT - 4);
     return;
   }
 
@@ -290,9 +365,9 @@ export function paintPage(ctx, page, ctxState) {
     ctx.font = `600 22px ${SERIF}`;
     ctx.letterSpacing = '5px';
     ctx.fillText('DAY ' + String(d.n).padStart(2, '0') +
-      (page.part > 1 ? '  ·  ' + J.strings.continued.toUpperCase() : ''), PAGE_W / 2, 150);
+      (page.part > 1 ? '  ·  ' + J.strings.continued.toUpperCase() : ''), PAGE_W / 2, TEXT_TOP + 22);
     ctx.letterSpacing = '0px';
-    flourish(ctx, PAGE_W / 2, 186, 200);
+    flourish(ctx, PAGE_W / 2, TEXT_TOP + 58, 200);
     rules(ctx, LINE_TOP);
     handwrite(ctx, entries[page.i] || '', LINE_TOP, focus === page.i && caretOn);
     if (!entries[page.i] && focus !== page.i) {
@@ -308,7 +383,7 @@ export function paintPage(ctx, page, ctxState) {
     ctx.fillStyle = GOLD;
     ctx.font = `44px ${DISPLAY}`;
     const tl = wrap(ctx, J.closing.title, LINE_W);
-    let y = 180;
+    let y = TEXT_TOP + 46;
     tl.forEach(l => { ctx.fillText(l, PAGE_W / 2, y); y += 52; });
     flourish(ctx, PAGE_W / 2, y + 6, 230);
     body(ctx, J.closing.body, y + 66);

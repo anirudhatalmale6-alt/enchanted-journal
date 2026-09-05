@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>The Journey to Me — by candlelight</title>
+<title>The Journey to Me — the 3D journal</title>
 <meta name="theme-color" content="#0a0406">
-<meta name="description" content="The Journey to Me — a 21 day self-transformation journal, on the table by candlelight.">
+<meta name="description" content="The Journey to Me — a 21 day self-transformation journal, as a real book you can open and write in.">
 <link rel="icon" href="../assets/icon-192.png">
 <style>
   /* The journal is written in by hand, so the writing has to be a hand.  The
@@ -77,6 +77,64 @@
   #sideways { display: none; }
   body.portrait #sideways { display: inline; color: var(--gold); }
 
+  /* ---- numbered day tabs, carried over from the storybook version ---- */
+  #tabs {
+    position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    z-index: 6; display: flex; flex-direction: column; gap: 3px;
+    padding: .5rem .45rem .5rem .2rem;
+    max-height: 74vh; overflow-y: auto; scrollbar-width: none;
+    pointer-events: auto;
+  }
+  #tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    font: 12.5px/1 "Iowan Old Style",Palatino,Georgia,serif;
+    min-width: 34px; height: 25px;
+    display: flex; align-items: center; justify-content: center;
+    color: #4a3018;
+    background: linear-gradient(to left, #e3c99f, #f6e6c8);
+    border: 1px solid rgba(120,84,36,.45); border-right: none;
+    border-radius: 5px 0 0 5px;
+    cursor: pointer; flex: 0 0 auto;
+    box-shadow: -3px 2px 8px rgba(0,0,0,.35);
+    transform: translateX(9px);
+    transition: transform .22s cubic-bezier(.3,1.4,.5,1), background .25s, min-width .22s;
+  }
+  .tab:hover { transform: translateX(0); background: linear-gradient(to left,#fff3dd,#fffdf6); }
+  .tab.active {
+    transform: translateX(-2px); min-width: 42px;
+    background: linear-gradient(to left, #cfa055, #f7e2ab);
+    color: #3b2409; border-color: rgba(90,60,18,.7);
+  }
+
+  /* ---- the scene switch ---- */
+  #modes {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px;
+    z-index: 6; display: flex; gap: 6px; pointer-events: auto;
+  }
+  .mode {
+    font: 11px/1 "Iowan Old Style",Palatino,Georgia,serif;
+    letter-spacing: .14em; text-transform: uppercase;
+    padding: .5rem .8rem; border-radius: 999px; cursor: pointer;
+    border: 1px solid rgba(217,172,98,.32);
+    background: rgba(20,8,10,.42); color: #d9ac62;
+    backdrop-filter: blur(3px);
+    transition: background .25s, color .25s, border-color .25s;
+  }
+  .mode:hover { border-color: rgba(217,172,98,.7); }
+  .mode.on { background: rgba(217,172,98,.9); color: #2a1608; border-color: transparent; }
+
+  /* In daylight the dark chrome disappears against a bright sky. */
+  body.day .mode { background: rgba(255,255,255,.55); color: #24455f; border-color: rgba(255,255,255,.85); }
+  body.day .mode.on { background: #24455f; color: #fff; border-color: transparent; }
+  body.day .arrow { background: rgba(255,255,255,.55); border-color: rgba(255,255,255,.9); color: #24455f; }
+  body.day .arrow:hover { background: #fff; }
+  body.day #tips { color: rgba(30,66,94,.62); }
+  body.day #tips b { color: #123f60; }
+  body.day #hint { color: #1e455f; text-shadow: 0 0 16px rgba(255,255,255,.9); }
+  body.day #boot { background: #a8d2f5; }
+  body.day #boot h1 { color: #1b3e5c; }
+  body.day #boot p { color: #46708f; }
+
   /* Where the keystrokes actually land.  It is never seen — the letters are
      painted onto the page in the scene — but it has to be a real field so a
      phone will put its keyboard up. */
@@ -99,6 +157,26 @@
     /* Clear of the arrows, which have moved down to the foot of the screen. */
     #tips { font-size: 9.5px; gap: 6px 14px; bottom: 112px; max-width: calc(100vw - 40px); }
     #hint { font-size: 10px; bottom: 15vh; }
+    /* On a phone the tabs would run down the middle of the page. They lie
+       along the TOP instead: the foot of the screen already carries the tips,
+       which wrap to three lines in portrait and ran straight through them. */
+    #tabs {
+      top: 54px; bottom: auto; right: auto; left: 50%;
+      transform: translateX(-50%);
+      flex-direction: row; max-width: calc(100vw - 24px); max-height: none;
+      overflow-x: auto; overflow-y: hidden; padding: .3rem .4rem;
+    }
+    .tab {
+      transform: translateY(-6px); min-width: 28px;
+      border: 1px solid rgba(120,84,36,.45); border-top: none;
+      border-radius: 0 0 5px 5px;
+      background: linear-gradient(to bottom, #e3c99f, #f6e6c8);
+      box-shadow: 0 3px 8px rgba(0,0,0,.35);
+    }
+    .tab.active { transform: translateY(1px); min-width: 34px;
+      background: linear-gradient(to bottom, #cfa055, #f7e2ab); }
+    #modes { top: 10px; right: 10px; }
+    .mode { font-size: 10px; padding: .42rem .62rem; }
   }
 </style>
 </head>
@@ -108,15 +186,20 @@
 
 <div id="boot">
   <h1>The Journey to Me</h1>
-  <p>lighting the candle</p>
+  <p id="bootLine">lighting the candle</p>
 </div>
 
 <div id="ui">
   <div id="hint">click the book to open it</div>
   <div class="arrow" id="prev" title="Back a page">‹</div>
   <div class="arrow" id="next" title="On a page">›</div>
+  <div id="modes">
+    <button class="mode" id="modeCandle" type="button">Candlelight</button>
+    <button class="mode" id="modeDay" type="button">Daylight sky</button>
+  </div>
+  <div id="tabs"></div>
   <div id="tips">
-    <span>drag to look around</span>
+    <span>drag to turn the book</span>
     <span><b>click a page to write on it</b></span>
     <span>arrow keys to turn</span>
     <span id="sideways">turn your phone sideways for the full spread</span>
