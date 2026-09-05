@@ -189,8 +189,19 @@ export async function resetPassword(email) {
    so the token is not left sitting in history or copied out of it. */
 export function claimLinkSession() {
   const hash = location.hash || '';
-  if (hash.indexOf('access_token=') === -1) return null;
   const q = new URLSearchParams(hash.replace(/^#/, ''));
+
+  /* An expired or already-used link comes back as an error in the same
+     fragment. Without this the reader is dropped on the sign-in screen with no
+     idea why their link did nothing, which is the most annoying possible
+     outcome of clicking a link that was supposed to help them. */
+  const err = q.get('error_description') || q.get('error');
+  if (err) {
+    history.replaceState(null, '', location.pathname + location.search);
+    return { type: 'error', message: decodeURIComponent(err).replace(/\+/g, ' ') };
+  }
+
+  if (hash.indexOf('access_token=') === -1) return null;
   const at = q.get('access_token');
   if (!at) return null;
   const s = {

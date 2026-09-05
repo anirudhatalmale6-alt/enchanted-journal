@@ -30,7 +30,9 @@
    at all in the normal case. */
 (function () {
   var h = location.hash || '';
-  if (h.indexOf('access_token=') !== -1 && h.indexOf('type=recovery') !== -1) {
+  var recovery = h.indexOf('access_token=') !== -1 && h.indexOf('type=recovery') !== -1;
+  var failed   = h.indexOf('error_description=') !== -1 || h.indexOf('error=') !== -1;
+  if (recovery || failed) {
     location.replace('./3d/' + h);
   }
 })();

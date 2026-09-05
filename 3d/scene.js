@@ -1580,7 +1580,11 @@ if (cloud.configured()) {
 
     // A password-reset email lands back here with a token in the URL fragment.
     const link = cloud.claimLinkSession();
-    if (link) {
+    if (link && link.type === 'error') {
+      setSigningUp(false);
+      authEl.hidden = false;
+      say(link.message + ' — ask for a new link below.');
+    } else if (link) {
       setResetting();
       authEl.hidden = false;
     } else if (cloud.currentUser()) {
