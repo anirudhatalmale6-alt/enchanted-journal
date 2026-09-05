@@ -748,7 +748,11 @@ const KEEP_Z = CH / 2 + 0.09;
 function petalStart() {
   let x = (Math.random() - 0.5) * 1.30;
   const z = -0.55 + Math.random() * 0.85;
-  if (Math.abs(x) < KEEP_X && Math.abs(z) < KEEP_Z) {
+  /* Not just the footprint: anything nearer the camera than the book's far edge
+     passes IN FRONT of the open spread and lands on the page in screen space,
+     however correct it is in three dimensions. Only petals clearly BEHIND the
+     book may cross the middle of the frame, and those read as depth. */
+  if (Math.abs(x) < KEEP_X && z > -KEEP_Z) {
     const side = x < 0 ? -1 : 1;
     x = side * (KEEP_X + Math.random() * 0.34);
   }
