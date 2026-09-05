@@ -2,7 +2,7 @@
    Bump CACHE when anything in ASSETS changes, or installed copies keep the
    old files for ever. */
 
-const CACHE = 'journey-to-me-v7';
+const CACHE = 'journey-to-me-v8';
 
 const ASSETS = [
   './',

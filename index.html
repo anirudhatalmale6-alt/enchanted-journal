@@ -16,6 +16,25 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Pinyon+Script&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<script>
+/* Catch a password-reset link that landed on the wrong page.
+
+   Supabase sends people back to the address in `redirect_to`, but ONLY if that
+   address is on its allow-list — otherwise it quietly falls back to the
+   project's Site URL, with no error anywhere. If that Site URL is the root of
+   this site, a reset token arrives here, on the storybook version, which knows
+   nothing about accounts, and the reader is simply stuck.
+
+   So: if a recovery token turns up here, hand it on to the journal that can use
+   it, fragment intact. Runs before anything else on the page, and does nothing
+   at all in the normal case. */
+(function () {
+  var h = location.hash || '';
+  if (h.indexOf('access_token=') !== -1 && h.indexOf('type=recovery') !== -1) {
+    location.replace('./3d/' + h);
+  }
+})();
+</script>
 </head>
 <body>
 
