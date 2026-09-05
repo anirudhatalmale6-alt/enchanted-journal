@@ -66,9 +66,30 @@ appears and nothing changes; with them filled in it appears on load.
 - **Redirect URLs**: add the same address.
 
 This matters for the "forgotten your password" link. Supabase will only send
-someone back to an address on that list — leave it out and the reset email
-lands on a Supabase page and stops there. Add every address the journal is
-served from, including a custom domain later on.
+someone back to an address on that list — leave it out and it falls back to the
+Site URL instead, silently. Add every address the journal is served from,
+including a custom domain later on.
+
+> **Type the address, or copy it from the browser's address bar. Never paste a
+> link copied out of a chat window.**
+>
+> Freelancer (and Slack, and most chat tools) rewrite outbound links to point at
+> their own redirector. Pasting one of those in here set the Site URL to
+> `https://www.freelancer.com/users/l.php?url=…&sig=…`, so every reset link went
+> Supabase → Freelancer's "you'll be redirected in 5 seconds" page → the
+> journal. That page **drops the `#fragment`**, which is where the token lives,
+> so the reader always arrived with nothing and saw a plain sign-in screen.
+>
+> It cost two rounds of guessing to find, because from the outside it looks
+> exactly like clicking the wrong email. The one command that settles it:
+>
+> ```
+> curl -sD - -o /dev/null \
+>   "https://PROJECT.supabase.co/auth/v1/verify?token=bogus&type=recovery&redirect_to=YOUR_URL" \
+>   | grep -i '^location'
+> ```
+>
+> Whatever that `location:` header says is where every reset link really goes.
 
 ## 5. Decide about confirmation emails
 
@@ -95,12 +116,11 @@ token it says so and asks them to check their email.
   the fastest way to make somebody stop opening it. A *Sign in* link stays in
   the corner so it is never a one-way door.
 - **Which email to open.** The reset mail arrives from Supabase with the
-  subject **"Reset Your Password"**. It is not the only email an inbox will have
-  about this journal, and the first person to use it opened a notification email
-  from elsewhere that happened to carry the journal's name, clicked the link in
-  that, and landed on a plain sign-in screen with no idea why. The link in that
-  other mail was the journal's ordinary address — no token on the end — so
-  nothing could have happened. The app now names the subject line when it sends.
+  subject **"Reset Your Password"**. An inbox will hold other mail carrying the
+  journal's name — notification emails and so on — whose links are just the
+  journal's ordinary address with no token on the end, and clicking one of those
+  lands on a plain sign-in screen with no explanation. The app now names the
+  subject line when it sends, so there is nothing to guess at.
 - **Forgotten passwords**: the reset email comes back to this page with the new
   session in the URL *fragment* (`#access_token=…&type=recovery`). A fragment
   never reaches a server and is not in `location.search`; the journal reads it,
