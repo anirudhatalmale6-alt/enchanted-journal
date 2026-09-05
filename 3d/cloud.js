@@ -37,7 +37,7 @@ export async function ready() {
       headers: { 'apikey': CFG.anonKey }
     });
     if (res.ok) return true;
-    const body = await res.json().catch(() => null);
+    const body = await readJson(res);
     if (res.status === 404 || (body && body.code === 'PGRST205')) {
       console.warn('[journal] Accounts are configured but the `entries` table ' +
                    'does not exist yet — see 3d/ACCOUNTS.md, step 2. ' +
@@ -92,9 +92,19 @@ function keep(json) {
 function authUrl(path) { return CFG.url.replace(/\/$/, '') + '/auth/v1' + path; }
 function restUrl(path) { return CFG.url.replace(/\/$/, '') + '/rest/v1' + path; }
 
+/* PostgREST answers a successful upsert with 200 or 201 and a body of ZERO
+   bytes unless you ask for a representation. `res.json()` on that throws
+   "Unexpected end of JSON input" — which is what a real reader saw, as
+   "Signed in, but could not load your writing", the moment the merge tried to
+   upload anything. Read the text and only parse if there is any. */
+async function readJson(res) {
+  const text = await res.text();
+  if (!text) return null;
+  try { return JSON.parse(text); } catch (e) { return null; }
+}
+
 async function readError(res) {
-  let body = null;
-  try { body = await res.json(); } catch (e) { /* not json */ }
+  const body = await readJson(res);
   const msg = (body && (body.error_description || body.msg || body.message || body.error))
               || ('Request failed (' + res.status + ')');
   const err = new Error(msg);
@@ -109,7 +119,9 @@ async function postAuth(path, body) {
     body: JSON.stringify(body)
   });
   if (!res.ok) throw await readError(res);
-  return res.json();
+  // `{}` not null: callers read .access_token off this, and /auth/v1/recover
+  // answers with an empty object anyway.
+  return (await readJson(res)) || {};
 }
 
 /* A token lasts an hour. Refresh a minute before it runs out rather than after
@@ -137,7 +149,7 @@ async function rest(path, opts) {
     }, (opts && opts.headers) || {})
   }));
   if (!res.ok) throw await readError(res);
-  return res.status === 204 ? null : res.json();
+  return readJson(res);
 }
 
 /* --------------------------------------------------------------- auth */
@@ -200,7 +212,7 @@ export async function loadUser() {
     headers: { 'apikey': CFG.anonKey, 'Authorization': 'Bearer ' + token }
   });
   if (!res.ok) throw await readError(res);
-  const u = await res.json();
+  const u = (await readJson(res)) || {};
   store(Object.assign({}, session, { user: { id: u.id, email: u.email } }));
   return currentUser();
 }
@@ -217,7 +229,7 @@ export async function changePassword(password) {
     body: JSON.stringify({ password })
   });
   if (!res.ok) throw await readError(res);
-  return res.json();
+  return readJson(res);
 }
 
 /* ------------------------------------------------------------ entries */
